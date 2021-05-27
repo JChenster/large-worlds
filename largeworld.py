@@ -18,12 +18,15 @@ class LargeWorld:
         self.N = N
         self.S = S
         self.small_worlds = []
+
+        # Each world get K states
         if fixNumStates:
             for agent_num in range(N):
                 agent = SmallWorld(agent_num, random.sample(range(S), K), E)
                 self.small_worlds.append(agent) 
+        # Each state is placed in K worlds
         else:
-            # states_list represents an array with the states in each of N agents
+            # states_list represents an array with the states in each of the N agents
             states_list = []
             [states_list.append([]) for i in range(N)]
             for state in range(S):

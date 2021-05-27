@@ -1,4 +1,5 @@
 class State:
+    # Initialize a state with its state number and its endowment amount
     def __init__(self, state_num, endowment: float):
         self.state_num = state_num
         self.amount = endowment
