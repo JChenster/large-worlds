@@ -6,7 +6,7 @@ class SmallWorld:
     # agent_num: int (the number of this small world in large world)
     # num_states: int (number of states in this small world)
     # balance: float (cash balance)
-    # states: dict(state_num: State) (dictionary of states in this small world with key state number and value State object)
+    # states: dict{state_num: State} (dictionary of states in this small world with key state number and value State object)
 
     # Intialize a small world with its agent_number (number of the small world in a large world),
     # a list of states that will be endowed with E each, as well as a cash balanace which is 0 by default
@@ -19,8 +19,8 @@ class SmallWorld:
             s = State(state, E)
             self.states[state] = s
     
-    def __str__(self):
+    def __str__(self) -> str:
         ans = f"Small world {self.agent_num} contains {self.num_states} states and ${self.balance}\n"
-        for state in self.states.keys():
-            ans += f"\t{str(self.states[state])}\n"
+        for state in self.states.values():
+            ans += f"\t{str(state)}\n"
         return ans        
