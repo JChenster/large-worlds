@@ -37,9 +37,11 @@ class LargeWorld:
                 self.small_worlds.append(agent)
 
     def __str__(self):
-        ans = f"This large world contains {self.N} agents with {self.S} state\n"
+        ans = f"This large world contains {self.N} agents with {self.S} states\n"
         for small_world in self.small_worlds:
             ans += str(small_world)
         return ans
     
+    def event(self, r = 1):
+        R = random.sample(range(self.S), r)
 
