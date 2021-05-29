@@ -1,6 +1,6 @@
 import random
 from smallworld import SmallWorld
-from bidtable import BidTable
+from markettable import MarketTable
 
 class LargeWorld:
     # Attributes:

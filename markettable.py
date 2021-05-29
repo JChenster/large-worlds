@@ -1,5 +1,7 @@
 from heapq import heappop, heappush
+from smallworld import SmallWorld
 from state import State
+from typing import List
 
 class Bidder:
     # Attributes:
@@ -26,12 +28,18 @@ class Bidder:
     def __str__(self):
         return f"({self.bid}:{self.time})"
 
-class BidTable:
+class MarketTable:
     # Attributes:
     # bt: dict{state_num: List[Bidder]} (dictionary of key of state_num and value of max heap of Bidders)
+    # is_bid_table: bool (True if this is a bid table, False if ask table)
 
     # Intialize bid table by iterating through all the states in each small world
-    def __init__(self, small_worlds):
+    # table_type must be "bid" or "ask"
+    def __init__(self, small_worlds: List[SmallWorld], table_type):
+        if table_type not in ["bid", "ask"]:
+            raise ValueError("Type of table must be \"bid\" or \"ask\"")
+        self.is_bid_table = table_type == "bid"
+
         self.bt = dict()
         for small_world in small_worlds:
             for state_num, state in small_world.states.items():
@@ -44,7 +52,7 @@ class BidTable:
 
     # String representation
     def __str__(self) -> str:
-        ans = f"Bid table:\n"
+        ans = f"{'Bid' if self.is_bid_table else 'Ask'} table:\n"
         
         state_nums = sorted(self.bt.keys())
         for state_num in state_nums:
@@ -54,7 +62,7 @@ class BidTable:
     # Update our bid table by passing in the State that has been modified and time representing which iteration it was modified
     # We find the state in bt[state_num] and pop it
     # We then push a new instance of bidder onto bt[state_num]
-    def updateBidder(self, state: State, time: int) -> None:
+    def updateTable(self, state: State, time: int) -> None:
         heap = self.bt[state.state_num]
         for bidder in heap:
             if bidder.state is state:
