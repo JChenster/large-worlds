@@ -62,6 +62,24 @@ class LargeWorld:
         for small_world in self.small_worlds:
             ans += str(small_world)
         return ans
+
+    # Initialize aspiration level of our small worlds based on R
+    def initalizeAspiration(self, R: len[int]):
+        # Iterate through each agent:
+        for small_world in self.small_worlds:
+            states = list(small_world.states.keys())
+            not_realized_states = list(filter(lambda s: s not in R, states))
+            # Initialize not_info by randomly choosing half of the agent's states not included in R 
+            not_info = random.sample(not_realized_states, len(not_realized_states) // 2)
+            
+            # Agent updates aspiration level of states in not_info to 0
+            for state in not_info:
+                small_world.states[state].updateAspiration(0)
+            # Set aspiration levels for states with unknown payoff
+            C = small_world.num_states - len(not_info)
+            for state in states:
+                if state not in not_info:
+                    small_world.states[state].updateAspiration(1/C)
     
     # Parameters:
     # period_num: int       what period it is 
@@ -78,21 +96,7 @@ class LargeWorld:
         R = random.sample(len(self.L), r)
 
         if period_num == 0:
-            # Iterate through each agent:
-            for small_world in self.small_worlds:
-                states = list(small_world.states.keys())
-                not_realized_states = list(filter(lambda s: s not in R, states))
-                # Initialize not_info by randomly choosing half of the agent's states not included in R 
-                not_info = random.sample(not_realized_states, len(not_realized_states) // 2)
-                
-                # Agent updates aspiration level of states in not_info to 0
-                for state in not_info:
-                    small_world.states[state].updateAspiration(0)
-                # Set aspiration levels for states with unknown payoff
-                C = small_world.num_states - len(not_info)
-                for state in states:
-                    if state not in not_info:
-                        small_world.states[state].updateAspiration(1/C)
+            self.initalizeAspiration(R)
         # implement first order adaptive updating of aspiration based on previous period's dividends
         else:
             pass
