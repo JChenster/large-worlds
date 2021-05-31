@@ -3,10 +3,10 @@ from typing import List
 
 class SmallWorld:
     # Attributes:
-    # agent_num: int (the number of this small world in large world)
-    # num_states: int (number of states in this small world)
-    # balance: float (cash balance)
-    # states: dict{state_num: State} (dictionary of states in this small world with key state number and value State object)
+    # agent_num: int                    the number of this small world in large world
+    # num_states: int                   number of states in this small world
+    # balance: float                    cash balance
+    # states: dict{state_num: State}    dictionary of states in this small world with key state number and value State object
 
     # Intialize a small world with its agent_number (number of the small world in a large world),
     # a list of states that will be endowed with E each, as well as a cash balanace which is 0 by default

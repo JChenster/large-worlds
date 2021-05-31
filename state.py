@@ -1,10 +1,10 @@
 class State:
     # Attributes:
-    # state_num: int (the number of the state in large world)
-    # amount: int (the amount of state that small world has)
-    # aspiration: float (the aspiration level that small world assigns to this state)
-    # bid: float (the small world's current bid for this state)
-    # ask: float (the small world's current ask for this state)
+    # state_num: int        the number of the state in large world
+    # amount: int           the amount of state that small world has
+    # aspiration: float     the aspiration level that small world assigns to this state
+    # bid: float            the small world's current bid for this state
+    # ask: float            the small world's current ask for this state
 
     # Initialize a state with its state number and its endowment amount
     def __init__(self, state_num: int, endowment: float):
