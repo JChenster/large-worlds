@@ -1,11 +1,14 @@
 import random
+from typing import List
 from smallworld import SmallWorld
 from markettable import MarketTable
+import marketmaker
 
 class LargeWorld:
     # Attributes:
     # N: int                                number of small worlds
-    # L: List[int]                          list of states in large world, union of states in small worlds
+    # S: int                                number of states in L
+    # L: List[int]                          union of states in small worlds
     # agents: List[int]                     list of agents in large world
     # small_worlds: List[SmallWorld]        list of SmallWorld objects    
 
@@ -13,23 +16,23 @@ class LargeWorld:
     # N: int                    number of small worlds
     # S: states                 number of states in large world
     # E: float                  endowment that each small world has for each of its states
-    # K: int                    can have one of two meanings, must be <= S if fixNumStates or  <= N if fixNumWorlds
-    # fixNumStates: bool        optional, configured as True by default in which each small world gets K states
-    # fixNumWorlds: bool        optional, configured as False by default, when True each state is assigned to K worlds
-    def __init__(self, N: int, S: int, E: int, K: int, fixNumStates = True, fixNumWorlds = False):
+    # K: int                    can have one of two meanings, must be <= S if fix_num_states or  <= N if fix_num_worlds
+    # fix_num_states: bool        optional, configured as True by default in which each small world gets K states
+    # fix_num_worlds: bool        optional, configured as False by default, when True each state is assigned to K worlds
+    def __init__(self, N: int, S: int, E: int, K: int, fix_num_states = True, fix_num_worlds = False):
         # Make sure our inputs are valid
-        if fixNumStates and fixNumWorlds or not(fixNumStates or fixNumWorlds):
-            raise ValueError("Exactly one of fixNumStates or fixNumWorlds must be configured")
-        if fixNumStates and K > S:
+        if fix_num_states and fix_num_worlds or not(fix_num_states or fix_num_worlds):
+            raise ValueError("Exactly one of fix_num_states or fix_num_worlds must be configured")
+        if fix_num_states and K > S:
             raise ValueError("Number of states in large world must be greater than number of states in small world")
-        if fixNumWorlds and K > N:
+        if fix_num_worlds and K > N:
             raise ValueError("Number of small worlds must be greater than number of small worlds each state is in")
         
-        self.N = N
+        self.N, self.S = N, S
         self.small_worlds, self.agents = [], []
 
         # Each world get K states
-        if fixNumStates:
+        if fix_num_states:
             self.agents = range(N)
             # We put all the states that are in our large world in L 
             d = dict()
@@ -64,7 +67,7 @@ class LargeWorld:
         return ans
 
     # Initialize aspiration level of our small worlds based on R
-    def initalizeAspiration(self, R: len[int]):
+    def initalizeAspiration(self, R: List[int]) -> None:
         # Iterate through each agent:
         for small_world in self.small_worlds:
             states = list(small_world.states.keys())
@@ -84,15 +87,16 @@ class LargeWorld:
     # Parameters:
     # period_num: int       what period it is 
     # i: int                number of market making iterations
-    # r: int                number of states that will be realized, must be <= number of states in L
+    # r: int                number of states that will be realized, must be <= S
     def period(self, period_num: int, i: int, r: int) -> None:
-        if r > len(self.L):
-            raise ValueError("r must be <= number of states in L")
+        if r > len(self.S):
+            raise ValueError("r must be <= number of states in large world")
 
         bid_table = MarketTable(self.small_worlds, "bid")
         ask_table = MarketTable(self.small_worlds, "ask")
 
-        # Initialize R by choosing r random states from L with equal probability to be realized 
+        # We make the model choice that states not in any small worlds may still be realized
+        # Initialize R by choosing r random states in the large world with equal probability to be realized 
         R = random.sample(len(self.L), r)
 
         if period_num == 0:
@@ -110,9 +114,6 @@ class LargeWorld:
             if rand_action == "bid":
                 bid = random.uniform(0, rand_state.aspiration)
                 rand_state.updateBid(bid)
-                # We check to see if there is a market clearing transaction to be made
-                # If there is, then we conduct the transaction
-                # Otherwise, we just update the bid_table
             else:
                 # Only submit the ask if the agent has amount > 0
                 ask = random.uniform(rand_state.aspiration, 1)

@@ -16,7 +16,7 @@ class SmallWorld:
         self.balance = balance
         self.states = dict()
         for state in states_list:
-            s = State(state, E)
+            s = State(self, state, E)
             self.states[state] = s
     
     def __str__(self) -> str:
