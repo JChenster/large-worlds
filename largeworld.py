@@ -1,35 +1,32 @@
 import random
-from typing import List
 from smallworld import SmallWorld
 from markettable import MarketTable
-import marketmaker
 
 class LargeWorld:
     # Attributes:
-    # N: int                                number of small worlds
-    # S: int                                number of states in L
-    # L: List[int]                          union of states in small worlds
-    # agents: List[int]                     list of agents in large world
-    # small_worlds: List[SmallWorld]        list of SmallWorld objects    
+    # N: int                                        number of small worlds
+    # S: int                                        number of states in L
+    # L: List[int]                                  union of states in small worlds
+    # small_worlds: dict{agent_num:SmallWorld}      dictionary of key agent numbers and value SmallWorld objects
+    # market_table: MarketTable                     our market making mechanism
+    # by_midpoint: bool                             whether or not transaction prices should be the midpoint of the bid-ask spread, if False we use the price of the earlier order
 
     # Parameters
     # N: int                    number of small worlds
     # S: states                 number of states in large world
     # E: float                  endowment that each small world has for each of its states
     # K: int                    can have one of two meanings, must be <= S if fix_num_states or  <= N if fix_num_worlds
-    # fix_num_states: bool        optional, configured as True by default in which each small world gets K states
-    # fix_num_worlds: bool        optional, configured as False by default, when True each state is assigned to K worlds
-    def __init__(self, N: int, S: int, E: int, K: int, fix_num_states = True, fix_num_worlds = False):
+    # fix_num_states: bool      if True, each small world gets K states. If false, each state is assigned to K small worlds
+    def __init__(self, N: int, S: int, E: int, K: int, fix_num_states: bool, by_midpoint: bool):
         # Make sure our inputs are valid
-        if fix_num_states and fix_num_worlds or not(fix_num_states or fix_num_worlds):
-            raise ValueError("Exactly one of fix_num_states or fix_num_worlds must be configured")
         if fix_num_states and K > S:
             raise ValueError("Number of states in large world must be greater than number of states in small world")
-        if fix_num_worlds and K > N:
+        if not fix_num_states and K > N:
             raise ValueError("Number of small worlds must be greater than number of small worlds each state is in")
         
         self.N, self.S = N, S
-        self.small_worlds, self.agents = [], []
+        self.by_midpoint = by_midpoint
+        self.small_worlds = dict()
 
         # Each world get K states
         if fix_num_states:
@@ -41,7 +38,7 @@ class LargeWorld:
                 for state_num in agent.states.keys():
                     if not d.get(state_num):
                         d[state_num] = True
-                self.small_worlds.append(agent)
+                self.small_worlds[agent_num] = agent
             self.L = list(d.keys())
         # Each state is placed in K worlds
         else:
@@ -55,21 +52,22 @@ class LargeWorld:
             for agent_num in range(N):
                 # We make sure that our agent actually has states within it
                 if states_list[agent_num]:
-                    self.agents.append(agent_num)
                     agent = SmallWorld(agent_num, states_list[agent_num], E)
-                    self.small_worlds.append(agent)
+                    self.small_worlds[agent_num] = agent
+        
+        self.market_table = MarketTable(self.L, self.small_worlds, self.by_midpoint)
 
     # String representation of large world and the small worlds and state within it
     def __str__(self) -> str:
         ans = f"This large world contains {self.N} agents with {len(self.L)} states\n"
-        for small_world in self.small_worlds:
+        for small_world in self.small_worlds.values():
             ans += str(small_world)
         return ans
 
     # Initialize aspiration level of our small worlds based on R
-    def initalizeAspiration(self, R: List[int]) -> None:
+    def initalizeAspiration(self, R) -> None:
         # Iterate through each agent:
-        for small_world in self.small_worlds:
+        for small_world in self.small_worlds.values():
             states = list(small_world.states.keys())
             not_realized_states = list(filter(lambda s: s not in R, states))
             # Initialize not_info by randomly choosing half of the agent's states not included in R 
@@ -89,15 +87,12 @@ class LargeWorld:
     # i: int                number of market making iterations
     # r: int                number of states that will be realized, must be <= S
     def period(self, period_num: int, i: int, r: int) -> None:
-        if r > len(self.S):
+        if r > self.S:
             raise ValueError("r must be <= number of states in large world")
-
-        bid_table = MarketTable(self.small_worlds, "bid")
-        ask_table = MarketTable(self.small_worlds, "ask")
 
         # We make the model choice that states not in any small worlds may still be realized
         # Initialize R by choosing r random states in the large world with equal probability to be realized 
-        R = random.sample(len(self.L), r)
+        R = random.sample(range(self.S), r)
 
         if period_num == 0:
             self.initalizeAspiration(R)
@@ -107,14 +102,15 @@ class LargeWorld:
 
         # Conduct each market making iteration using a single processor 
         for j in range(i):
-            rand_agent = random.choice(self.small_worlds.values())
-            rand_state = rand_agent[random.choice(rand_agent.states.keys())]
+            rand_agent = random.choice(list(self.small_worlds.values()))
+            rand_state = random.choice(list(rand_agent.states.values()))
             rand_action = random.choice(["bid", "ask"])
 
             if rand_action == "bid":
                 bid = random.uniform(0, rand_state.aspiration)
-                rand_state.updateBid(bid)
+                self.market_table.updateBidder(bid, rand_state, j)
             else:
-                # Only submit the ask if the agent has amount > 0
                 ask = random.uniform(rand_state.aspiration, 1)
-                rand_state.updateAsk(ask)
+                self.market_table.updateAsker(ask, rand_state, j)
+        print(str(self.market_table))
+        self.market_table.tableReset()
