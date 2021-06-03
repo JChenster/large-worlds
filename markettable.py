@@ -9,6 +9,9 @@ class MarketTable:
         self.table = dict()
         for state_num in L:
             self.table[state_num] = Market(by_midpoint)
+        for small_world in small_worlds.values():
+            for state_num, state in small_world.states.items():
+                self.table[state_num].reserveAdd(state)
     
     def __str__(self) -> str:
         ans = "Market Table:\n"

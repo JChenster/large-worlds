@@ -26,3 +26,6 @@ class SmallWorld:
 
     def balanceAdd(self, amount) -> None:
         self.balance += amount
+    
+    def balanceReset(self) -> None:
+        self.balance = 0

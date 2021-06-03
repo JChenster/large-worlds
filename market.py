@@ -1,3 +1,5 @@
+from agentintelligence import priceFirstOrderAdaptive
+
 class Market:
     # Attributes:
     # bid: float            highest bid
@@ -7,6 +9,7 @@ class Market:
     # asker: State          State object with the lowest bid
     # asker_time: int       what iteration asker made their offer in
     # by_midpoint: bool     whether or not transaction prices should be the midpoint of the bid-ask spread, if False we use the price of the earlier order
+    # reserve: List[State]  all State objects of the small  worlds that are participating in this market
     
     def __init__(self, by_midpoint):
         self.by_midpoint = by_midpoint
@@ -25,6 +28,9 @@ class Market:
         self.ask = 1
         self.bidder = self.asker = None
         self.bidder_time = self.asker_time = time
+
+    def reserveAdd(self, state) -> None:
+        self.reserve.append(state)
 
     # We only update bidder if new bidder is higher or there is no current bidder
     # Return if update was done
@@ -50,7 +56,7 @@ class Market:
 
     # Checks to see if there is a market clearing transaction and if there is, it conducts the trade
     def marketMake(self, time: int) -> bool:
-        if not (self.bidder and self.asker) or self.bid < self.ask:
+        if not (self.bidder and self.asker) or self.bidder is self.asker or self.bid < self.ask:
             return False
         if self.by_midpoint:
             transaction_price = (self.bid + self.ask) / 2
@@ -72,5 +78,8 @@ class Market:
         action = 1 if self.bidder_time > self.asker_time else 0
         print(f"Iteration #:{time}\tBuyer ID:{buyer_id}\tSeller ID:{seller_id}\tTransaction Price:{transaction_price}\tAction:{action}")
 
+        # Reset the market and adjust the aspiration of our agents who are aware of this state
         self.marketReset(time)
+        for state in self.reserve:
+            state.updateAspiration(priceFirstOrderAdaptive(state.aspiration, transaction_price))
         return True

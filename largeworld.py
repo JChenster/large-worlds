@@ -1,11 +1,13 @@
 import random
 from smallworld import SmallWorld
 from markettable import MarketTable
+from agentintelligence import dividendFirstOrderAdaptive
 
 class LargeWorld:
     # Attributes:
     # N: int                                        number of small worlds
     # S: int                                        number of states in L
+    # E: float                                      endowment of each security in each small world
     # L: List[int]                                  union of states in small worlds
     # small_worlds: dict{agent_num:SmallWorld}      dictionary of key agent numbers and value SmallWorld objects
     # market_table: MarketTable                     our market making mechanism
@@ -24,7 +26,7 @@ class LargeWorld:
         if not fix_num_states and K > N:
             raise ValueError("Number of small worlds must be greater than number of small worlds each state is in")
         
-        self.N, self.S = N, S
+        self.N, self.S, self.E = N, S, E
         self.by_midpoint = by_midpoint
         self.small_worlds = dict()
 
@@ -34,7 +36,7 @@ class LargeWorld:
             # We put all the states that are in our large world in L 
             d = dict()
             for agent_num in range(N):
-                agent = SmallWorld(agent_num, random.sample(range(S), K), E)
+                agent = SmallWorld(agent_num, random.sample(range(S), K), self.E)
                 for state_num in agent.states.keys():
                     if not d.get(state_num):
                         d[state_num] = True
@@ -52,7 +54,7 @@ class LargeWorld:
             for agent_num in range(N):
                 # We make sure that our agent actually has states within it
                 if states_list[agent_num]:
-                    agent = SmallWorld(agent_num, states_list[agent_num], E)
+                    agent = SmallWorld(agent_num, states_list[agent_num], self.E)
                     self.small_worlds[agent_num] = agent
         
         self.market_table = MarketTable(self.L, self.small_worlds, self.by_midpoint)
@@ -81,6 +83,25 @@ class LargeWorld:
             for state in states:
                 if state not in not_info:
                     small_world.states[state].updateAspiration(1/C)
+
+    # Re-endow all small worlds at the beginning of a period if it is not the first
+    def resetSmallWorlds(self) -> None:
+        for small_world in self.small_worlds.values():
+            small_world.balanceReset()
+            for state in small_world.states.values():
+                state.amountAdd(self.E)
+
+    # Called at the end of a period to pay out all dividends as appropriate
+    def realizePeriod(self, R) -> None:
+        for small_world in self.small_worlds.values():
+            for state_num, state in small_world.states.items():
+                if state.amount > 0:
+                    if state_num in R:
+                        small_world.balanceAdd(state.amount)
+                        state.updateAspiration(dividendFirstOrderAdaptive(state.aspiration, 1))
+                    else:
+                        state.updateAspiration(dividendFirstOrderAdaptive(state.aspiration, 0))
+                    state.amountReset()
     
     # Parameters:
     # period_num: int       what period it is 
@@ -96,9 +117,8 @@ class LargeWorld:
 
         if period_num == 0:
             self.initalizeAspiration(R)
-        # implement first order adaptive updating of aspiration based on previous period's dividends
         else:
-            pass
+            self.resetSmallWorlds()
 
         # Conduct each market making iteration using a single processor 
         for j in range(i):
@@ -112,5 +132,19 @@ class LargeWorld:
             else:
                 ask = random.uniform(rand_state.aspiration, 1)
                 self.market_table.updateAsker(ask, rand_state, j)
-        print(str(self.market_table))
+        
+        # Temporary for testing purposes
+        # print(str(self.market_table))
+
         self.market_table.tableReset()
+
+        # Realize states in R
+        self.realizePeriod(R)
+    
+    # parameters
+    # num_periods: int      number of periods to run the simulation for
+    # i: int                number of market making iterations
+    # r: int                number of states that will be realized, must be <= S
+    def simulate(self, num_periods: int, i: int, r: int):
+        for period in range(num_periods):
+            self.period(period, i, r)

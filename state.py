@@ -18,5 +18,8 @@ class State:
     def amountAdd(self, amount: int) -> None:
         self.amount += amount
 
+    def amountReset(self) -> None:
+        self.amount = 0
+
     def __str__(self):
         return f"{self.amount} of state {self.state_num}, aspiration: {round(self.aspiration,2)}"
