@@ -5,6 +5,7 @@ class SmallWorld:
     # agent_num: int                    the number of this small world in large world
     # num_states: int                   number of states in this small world
     # balance: float                    cash balance
+    # not_info: List[int]               list of the state numbers the agent knows are not realized
     # states: dict{state_num: State}    dictionary of states in this small world with key state number and value State object
 
     # Intialize a small world with its agent_number (number of the small world in a large world),
@@ -13,6 +14,7 @@ class SmallWorld:
         self.agent_num = agent_num
         self.num_states = len(states_list)
         self.balance = balance
+        self.not_info = []
         self.states = dict()
         for state in states_list:
             s = State(self, state, E)
@@ -20,8 +22,9 @@ class SmallWorld:
     
     def __str__(self) -> str:
         ans = f"Small world {self.agent_num} contains {self.num_states} states and ${self.balance}\n"
+        ans += f"\tIt knows states {self.not_info} are not realized\n"
         for state in self.states.values():
-            ans += f"\t{str(state)}\n"
+            ans += f"\t\t{str(state)}\n"
         return ans
 
     def balanceAdd(self, amount) -> None:
@@ -29,3 +32,6 @@ class SmallWorld:
     
     def balanceReset(self) -> None:
         self.balance = 0
+
+    def giveNotInfo(self, not_info) -> None:
+        self.not_info = not_info

@@ -10,12 +10,14 @@ class Market:
     # asker_time: int       what iteration asker made their offer in
     # by_midpoint: bool     whether or not transaction prices should be the midpoint of the bid-ask spread, if False we use the price of the earlier order
     # reserve: List[State]  all State objects of the small  worlds that are participating in this market
+    # cur: Cursor           Cursor object to execute database commands
     
-    def __init__(self, by_midpoint):
+    def __init__(self, by_midpoint, cur):
         self.by_midpoint = by_midpoint
         self.reserve = []
         self.marketReset(-1)
         self.transactions = 0
+        self.cur = cur
 
     def __str__(self) -> str:
         bidder_str = self.bidder.parent_world.agent_num if self.bidder else None
@@ -62,24 +64,29 @@ class Market:
             transaction_price = (self.bid + self.ask) / 2
         else:
             transaction_price = self.bid if self.bidder_time < self.asker_time else self.ask
-        
+            
         # Adjust amounts and balances
         # We sell and buy 1 unit of a security at a time
         self.asker.parent_world.balanceAdd(transaction_price)
         self.bidder.parent_world.balanceAdd(-1 * transaction_price)
         self.asker.amountAdd(-1)
         self.bidder.amountAdd(1)
-        
+
         # Store transaction data in database
-        
-        # Temporary output 
+        state_num = self.bidder.state_num
         buyer_id = self.bidder.parent_world.agent_num
         seller_id = self.asker.parent_world.agent_num
         action = 1 if self.bidder_time > self.asker_time else 0
+        self.cur.execute('''
+            INSERT INTO transactions (iteration_num, state_num, buyer_id, seller_id, price, action)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', [time, state_num, buyer_id, seller_id, transaction_price, action])
+        # Temporary output
         print(f"Iteration #:{time}\tBuyer ID:{buyer_id}\tSeller ID:{seller_id}\tTransaction Price:{transaction_price}\tAction:{action}")
 
         # Reset the market and adjust the aspiration of our agents who are aware of this state
-        self.marketReset(time)
         for state in self.reserve:
-            state.updateAspiration(priceFirstOrderAdaptive(state.aspiration, transaction_price))
+            if state_num not in state.parent_world.not_info:
+                state.updateAspiration(priceFirstOrderAdaptive(state.aspiration, transaction_price))
+        self.marketReset(time)
         return True

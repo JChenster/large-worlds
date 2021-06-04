@@ -1,4 +1,5 @@
 import random
+import sqlite3
 from smallworld import SmallWorld
 from markettable import MarketTable
 from agentintelligence import dividendFirstOrderAdaptive
@@ -12,6 +13,8 @@ class LargeWorld:
     # small_worlds: dict{agent_num:SmallWorld}      dictionary of key agent numbers and value SmallWorld objects
     # market_table: MarketTable                     our market making mechanism
     # by_midpoint: bool                             whether or not transaction prices should be the midpoint of the bid-ask spread, if False we use the price of the earlier order
+    # con: Connection                               connection to database object
+    # cur: Cursor                                   Cursor object to execute database commands
 
     # Parameters
     # N: int                    number of small worlds
@@ -19,7 +22,9 @@ class LargeWorld:
     # E: float                  endowment that each small world has for each of its states
     # K: int                    can have one of two meanings, must be <= S if fix_num_states or  <= N if fix_num_worlds
     # fix_num_states: bool      if True, each small world gets K states. If false, each state is assigned to K small worlds
-    def __init__(self, N: int, S: int, E: int, K: int, fix_num_states: bool, by_midpoint: bool):
+    # by_midpoint: bool         whether or not transaction prices should be the midpoint of the bid-ask spread, if False we use the price of the earlier order
+    # db_name: str              name for database
+    def __init__(self, N: int, S: int, E: int, K: int, fix_num_states: bool, by_midpoint: bool, db_name: str):
         # Make sure our inputs are valid
         if fix_num_states and K > S:
             raise ValueError("Number of states in large world must be greater than number of states in small world")
@@ -56,8 +61,11 @@ class LargeWorld:
                 if states_list[agent_num]:
                     agent = SmallWorld(agent_num, states_list[agent_num], self.E)
                     self.small_worlds[agent_num] = agent
-        
-        self.market_table = MarketTable(self.L, self.small_worlds, self.by_midpoint)
+        # Set up our database
+        self.con = sqlite3.connect(db_name)
+        self.cur = self.con.cursor()
+        # Set up our market
+        self.market_table = MarketTable(self.L, self.small_worlds, self.by_midpoint, self.cur)
 
     # String representation of large world and the small worlds and state within it
     def __str__(self) -> str:
@@ -74,6 +82,7 @@ class LargeWorld:
             not_realized_states = list(filter(lambda s: s not in R, states))
             # Initialize not_info by randomly choosing half of the agent's states not included in R 
             not_info = random.sample(not_realized_states, len(not_realized_states) // 2)
+            small_world.giveNotInfo(not_info)
             
             # Agent updates aspiration level of states in not_info to 0
             for state in not_info:
@@ -110,16 +119,13 @@ class LargeWorld:
     def period(self, period_num: int, i: int, r: int) -> None:
         if r > self.S:
             raise ValueError("r must be <= number of states in large world")
-
         # We make the model choice that states not in any small worlds may still be realized
         # Initialize R by choosing r random states in the large world with equal probability to be realized 
         R = random.sample(range(self.S), r)
-
         if period_num == 0:
             self.initalizeAspiration(R)
         else:
             self.resetSmallWorlds()
-
         # Conduct each market making iteration using a single processor 
         for j in range(i):
             rand_agent = random.choice(list(self.small_worlds.values()))
@@ -131,20 +137,47 @@ class LargeWorld:
                 self.market_table.updateBidder(bid, rand_state, j)
             else:
                 ask = random.uniform(rand_state.aspiration, 1)
-                self.market_table.updateAsker(ask, rand_state, j)
-        
-        # Temporary for testing purposes
-        # print(str(self.market_table))
-
+                self.market_table.updateAsker(ask, rand_state, j)    
+        # Finish the period
         self.market_table.tableReset()
-
-        # Realize states in R
         self.realizePeriod(R)
+
+    def createTransactionsTable(self) -> None:
+        self.cur.execute("DROP TABLE IF EXISTS transactions")
+        self.cur.execute('''
+            CREATE TABLE transactions (
+                transaction_num INTEGER PRIMARY KEY,
+                iteration_num INT NOT NULL,
+                state_num INT NOT NULL,
+                buyer_id INT NOT NULL,
+                seller_id INT NOT NULL,
+                price FLOAT NOT NULL,
+                action INT NOT NULL
+            );
+        ''')
+
+    def createResultsTable(self) -> None:
+        self.cur.execute("DROP TABLE IF EXISTS results")
+        self.cur.execute('''
+            CREATE TABLE results (
+                agent_num INT,
+                num_states INT,
+                states TEXT,
+                not_info TEXT,
+                balance FLOAT
+            )
+        ''')
+        for small_world in self.small_worlds.values():
+            self.cur.execute("INSERT INTO results VALUES (?, ?, ?, ?, ?)", [small_world.agent_num, small_world.num_states, ",".join(map(str,small_world.states.keys())), ",".join(map(str,small_world.not_info)), small_world.balance])
     
     # parameters
     # num_periods: int      number of periods to run the simulation for
     # i: int                number of market making iterations
     # r: int                number of states that will be realized, must be <= S
     def simulate(self, num_periods: int, i: int, r: int):
+        self.createTransactionsTable()
         for period in range(num_periods):
             self.period(period, i, r)
+        self.createResultsTable()
+        self.con.commit()
+        self.con.close()
