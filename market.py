@@ -81,8 +81,6 @@ class Market:
             INSERT INTO transactions (iteration_num, state_num, buyer_id, seller_id, price, action)
             VALUES (?, ?, ?, ?, ?, ?)
         ''', [time, state_num, buyer_id, seller_id, transaction_price, action])
-        # Temporary output
-        print(f"Iteration #:{time}\tBuyer ID:{buyer_id}\tSeller ID:{seller_id}\tTransaction Price:{transaction_price}\tAction:{action}")
 
         # Reset the market and adjust the aspiration of our agents who are aware of this state
         for state in self.reserve:

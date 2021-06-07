@@ -12,7 +12,8 @@ class LargeWorld:
     # L: List[int]                                  union of states in small worlds
     # small_worlds: dict{agent_num:SmallWorld}      dictionary of key agent numbers and value SmallWorld objects
     # market_table: MarketTable                     our market making mechanism
-    # by_midpoint: bool                             whether or not transaction prices should be the midpoint of the bid-ask spread, if False we use the price of the earlier order
+    # by_midpoint: bool                             whether or not transaction prices should be the midpoint of the bid-ask spread
+    #                                               if False we use the price of the earlier order
     # con: Connection                               connection to database object
     # cur: Cursor                                   Cursor object to execute database commands
 
@@ -22,9 +23,10 @@ class LargeWorld:
     # E: float                  endowment that each small world has for each of its states
     # K: int                    can have one of two meanings, must be <= S if fix_num_states or  <= N if fix_num_worlds
     # fix_num_states: bool      if True, each small world gets K states. If false, each state is assigned to K small worlds
-    # by_midpoint: bool         whether or not transaction prices should be the midpoint of the bid-ask spread, if False we use the price of the earlier order
-    # db_name: str              name for database
-    def __init__(self, N: int, S: int, E: int, K: int, fix_num_states: bool, by_midpoint: bool, db_name: str):
+    # by_midpoint: bool         whether or not transaction prices should be the midpoint of the bid-ask spread
+    #                           if False we use the price of the earlier order
+    # file_name: str            what file names for this large world will be called
+    def __init__(self, N: int, S: int, E: int, K: int, fix_num_states: bool, by_midpoint: bool, file_name: str):
         # Make sure our inputs are valid
         if fix_num_states and K > S:
             raise ValueError("Number of states in large world must be greater than number of states in small world")
@@ -62,7 +64,7 @@ class LargeWorld:
                     agent = SmallWorld(agent_num, states_list[agent_num], self.E)
                     self.small_worlds[agent_num] = agent
         # Set up our database
-        self.con = sqlite3.connect(db_name)
+        self.con = sqlite3.connect(file_name + ".db")
         self.cur = self.con.cursor()
         # Set up our market
         self.market_table = MarketTable(self.L, self.small_worlds, self.by_midpoint, self.cur)
@@ -74,8 +76,7 @@ class LargeWorld:
             ans += str(small_world)
         return ans
 
-    # Initialize aspiration level of our small worlds based on R
-    def initalizeAspiration(self, R) -> None:
+    def giveMinimalIntelligence(self, R) -> None:
         # Iterate through each agent:
         for small_world in self.small_worlds.values():
             states = list(small_world.states.keys())
@@ -83,15 +84,20 @@ class LargeWorld:
             # Initialize not_info by randomly choosing half of the agent's states not included in R 
             not_info = random.sample(not_realized_states, len(not_realized_states) // 2)
             small_world.giveNotInfo(not_info)
-            
+
+    # Initialize aspiration level of our small worlds based on R
+    def initalizeAspiration(self) -> None:
+        # Iterate through each agent:
+        for small_world in self.small_worlds.values():
+            not_info = small_world.not_info
             # Agent updates aspiration level of states in not_info to 0
             for state in not_info:
                 small_world.states[state].updateAspiration(0)
             # Set aspiration levels for states with unknown payoff
             C = small_world.num_states - len(not_info)
-            for state in states:
-                if state not in not_info:
-                    small_world.states[state].updateAspiration(1/C)
+            for state_num, state in small_world.states.items():
+                if state_num not in not_info:
+                    state.updateAspiration(1/C)
 
     # Re-endow all small worlds at the beginning of a period if it is not the first
     def resetSmallWorlds(self) -> None:
@@ -122,8 +128,9 @@ class LargeWorld:
         # We make the model choice that states not in any small worlds may still be realized
         # Initialize R by choosing r random states in the large world with equal probability to be realized 
         R = random.sample(range(self.S), r)
+        self.giveMinimalIntelligence(R)
         if period_num == 0:
-            self.initalizeAspiration(R)
+            self.initalizeAspiration()
         else:
             self.resetSmallWorlds()
         # Conduct each market making iteration using a single processor 
@@ -163,13 +170,17 @@ class LargeWorld:
                 agent_num INT,
                 num_states INT,
                 states TEXT,
-                not_info TEXT,
                 balance FLOAT
             )
         ''')
         for small_world in self.small_worlds.values():
-            self.cur.execute("INSERT INTO results VALUES (?, ?, ?, ?, ?)", [small_world.agent_num, small_world.num_states, ",".join(map(str,small_world.states.keys())), ",".join(map(str,small_world.not_info)), small_world.balance])
-    
+            self.cur.execute("INSERT INTO results VALUES (?, ?, ?, ?)", 
+                            [
+                                small_world.agent_num, 
+                                small_world.num_states, 
+                                ",".join(map(str,small_world.states.keys())),
+                                small_world.balance
+                            ])
     # parameters
     # num_periods: int      number of periods to run the simulation for
     # i: int                number of market making iterations
