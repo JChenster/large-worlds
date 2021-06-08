@@ -1,8 +1,9 @@
 import random
 import sqlite3
 from smallworld import SmallWorld
-from markettable import MarketTable
-from agentintelligence import dividendFirstOrderAdaptive
+from market_table import MarketTable
+from agent_intelligence import dividendFirstOrderAdaptive
+import database_manager as dm
 
 class LargeWorld:
     # Attributes:
@@ -128,6 +129,7 @@ class LargeWorld:
         # We make the model choice that states not in any small worlds may still be realized
         # Initialize R by choosing r random states in the large world with equal probability to be realized 
         R = random.sample(range(self.S), r)
+        dm.updateRealizationsTable(self.cur, period_num, self.S, R)
         self.giveMinimalIntelligence(R)
         if period_num == 0:
             self.initalizeAspiration()
@@ -148,47 +150,17 @@ class LargeWorld:
         # Finish the period
         self.market_table.tableReset()
         self.realizePeriod(R)
+        dm.updateAgentsTable(self.cur, period_num, self.small_worlds.values())
 
-    def createTransactionsTable(self) -> None:
-        self.cur.execute("DROP TABLE IF EXISTS transactions")
-        self.cur.execute('''
-            CREATE TABLE transactions (
-                transaction_num INTEGER PRIMARY KEY,
-                iteration_num INT NOT NULL,
-                state_num INT NOT NULL,
-                buyer_id INT NOT NULL,
-                seller_id INT NOT NULL,
-                price FLOAT NOT NULL,
-                action INT NOT NULL
-            );
-        ''')
-
-    def createResultsTable(self) -> None:
-        self.cur.execute("DROP TABLE IF EXISTS results")
-        self.cur.execute('''
-            CREATE TABLE results (
-                agent_num INT,
-                num_states INT,
-                states TEXT,
-                balance FLOAT
-            )
-        ''')
-        for small_world in self.small_worlds.values():
-            self.cur.execute("INSERT INTO results VALUES (?, ?, ?, ?)", 
-                            [
-                                small_world.agent_num, 
-                                small_world.num_states, 
-                                ",".join(map(str,small_world.states.keys())),
-                                small_world.balance
-                            ])
     # parameters
     # num_periods: int      number of periods to run the simulation for
     # i: int                number of market making iterations
     # r: int                number of states that will be realized, must be <= S
     def simulate(self, num_periods: int, i: int, r: int):
-        self.createTransactionsTable()
+        dm.createTransactionsTable(self.cur)
+        dm.createAgentsTable(self.cur)
+        dm.createRealizationsTable(self.cur)
         for period in range(num_periods):
             self.period(period, i, r)
-        self.createResultsTable()
         self.con.commit()
         self.con.close()

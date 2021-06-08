@@ -7,6 +7,7 @@ class SmallWorld:
     # balance: float                    cash balance
     # not_info: List[int]               list of the state numbers the agent knows are not realized
     # states: dict{state_num: State}    dictionary of states in this small world with key state number and value State object
+    # C: int                            number of states for whom the outcome is uncertain
 
     # Intialize a small world with its agent_number (number of the small world in a large world),
     # a list of states that will be endowed with E each, as well as a cash balanace which is 0 by default
@@ -35,3 +36,4 @@ class SmallWorld:
 
     def giveNotInfo(self, not_info) -> None:
         self.not_info = not_info
+        self.C = self.num_states - len(self.not_info)

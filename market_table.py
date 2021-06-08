@@ -23,8 +23,7 @@ class MarketTable:
     # Called at the end of a period
     def tableReset(self) -> None:
         for market in self.table.values():
-            market.marketReset(-1)
-            market.transactions = 0
+            market.periodReset()
     
     def updateBidder(self, new_bid: float, new_bidder, time: int) -> bool:
         return self.table[new_bidder.state_num].updateBidder(new_bid, new_bidder, time)
