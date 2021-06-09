@@ -4,6 +4,6 @@
 def priceFirstOrderAdaptive(aspiration: float, price: float, alpha = .05) -> float:
     return alpha * price + (1 - alpha) * aspiration
 
-# beta is a parameter that we can modify, set at .25 by default
-def dividendFirstOrderAdaptive(aspiration: float, dividend: int, beta = .25) -> float:
+# beta is a parameter that we can modify, set at .15 by default
+def dividendFirstOrderAdaptive(aspiration: float, dividend: int, beta = .15) -> float:
     return beta * dividend + (1 - beta) * aspiration

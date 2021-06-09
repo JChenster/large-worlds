@@ -50,3 +50,28 @@ def updateAgentsTable(cur, period_num: int, small_worlds) -> None:
         not_info = ",".join(map(str, sw.not_info))
         cur.execute("INSERT INTO agents VALUES (?, ?, ?, ?, ?, ?, ?)",
                     [period_num, sw.agent_num, sw.num_states, sw.balance, states, not_info, sw.C])
+
+def createPricesByPeriodTable(cur) -> None:
+    cur.execute("DROP TABLE IF EXISTS prices_by_period")
+    cur.execute('''
+        CREATE TABLE prices_by_period (
+            state_num INT NOT NULL,
+            period_num INT NOT NULL,
+            mean INT,
+            st_dev INT,
+            volume INT NOT NULL,
+            realized INT
+        )
+    ''')
+
+def createPricesByTransactionTable(cur) -> None:
+    cur.execute("DROP TABLE IF EXISTS prices_by_transaction")
+    cur.execute('''
+        CREATE TABLE prices_by_transaction (
+            state_num INT NOT NULL,
+            transaction_num INT NOT NULL,
+            mean INT,
+            st_dev INT,
+            volume INT NOT NULL
+        )
+    ''')

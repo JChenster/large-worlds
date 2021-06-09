@@ -162,5 +162,6 @@ class LargeWorld:
         dm.createRealizationsTable(self.cur)
         for period in range(num_periods):
             self.period(period, i, r)
+        # Save and close database connection
         self.con.commit()
         self.con.close()
