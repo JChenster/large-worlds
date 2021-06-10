@@ -66,6 +66,7 @@ def menu():
         #     menu()
     elif i == "stats":
         db = input("Enter database file name: ")
+        print("-" * 75)
         runStatistics(db)
     else:
         print("That's not a valid option, try again")
