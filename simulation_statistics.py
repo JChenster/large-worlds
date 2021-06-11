@@ -35,8 +35,17 @@ def pricePathByPeriod(cur, p: dict) -> None:
         x = range(num_periods)
         for period_num in x:
             cur.execute("SELECT price FROM transactions WHERE state_num=? AND period_num=?", (state_num, period_num))
-            period_prices = list(map(lambda r: r[0], cur.fetchall()))
+            rows = cur.fetchall()
+            # No transactions during this period
+            if not rows:
+                price_data.append([])
+                continue
+            period_prices = list(map(lambda r: r[0], rows))
             price_data.append(period_prices)
+
+        # Account for possibility that no agents have this security in their small world
+        if not list(filter(lambda x: x, price_data)):
+            continue
 
         # We log the mean as 0 if there are no transactions
         means = list(map(lambda z: stat.mean(z) if z else 0, price_data))
@@ -54,12 +63,16 @@ def pricePathByPeriod(cur, p: dict) -> None:
     print("Sucessfully added price path by period statistics to database")
 
 def pricePathByTransaction(cur, p: dict) -> None:
-    # If we want to have all securities display up to the highest transaction, we just set max_transaction to the most number of transactions they have in a period
+    # If we want to have all securities display up to the highest transaction, we just set max_transactions to the most number of transactions they have in a period
     S = p["S"]
     dm.createPricesByTransactionTable(cur)
     for state_num in range(S):
         cur.execute("SELECT MAX(transaction_num) FROM transactions WHERE state_num=?", (state_num,))
         max_transactions = cur.fetchone()[0]
+        # Account for possibility that no agents have this security in their small world
+        # We choose to ignore such states
+        if not max_transactions:
+            continue
 
         # Create a list with all the transactions that occur 
         price_data = []

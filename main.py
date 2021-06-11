@@ -1,11 +1,14 @@
 from largeworld import LargeWorld
 from simulation_statistics import obtainParameters, runStatistics
+import time
 
 def runInputFile(input_file):
     p = obtainParameters(input_file)
+    start = time.time()
     L = LargeWorld(p["N"], p["S"], p["E"], p["K"], p["fix_num_states"], p["by_midpoint"], p["file_name"])
     L.simulate(p["num_periods"], p["i"], p["r"])
-    print(f"Successfully ran simulation! Results can be found in {input_file[:-3]}.db")
+    end = time.time()
+    print(f"Successfully ran simulation! This simulation took {round(end - start, 1)} seconds to run. Results can be found in {input_file[:-3]}.db")
 
 # Creates an input file based on what the user enters and runs a round of the simulation with it
 def handleInput():
@@ -54,7 +57,10 @@ def menu():
     print("'input': input parameters and run a round of the simulation")
     print("'run': run an already existing input file")
     print("'stats' to run statistics for an already existing database")
+    print("'q' to quit")
     i = input("Enter your choice here: ").strip().lower()
+    if i == "q":
+        return
     if i == "input":
         handleInput()
     elif i == "run":
@@ -63,14 +69,13 @@ def menu():
         runInputFile(input_file)
         # except:
         #     print("That's an invalid input file, try again")
-        #     menu()
     elif i == "stats":
         db = input("Enter database file name: ")
         print("-" * 75)
         runStatistics(db)
     else:
         print("That's not a valid option, try again")
-        menu()
+    menu()
 
 def main():
     print("-" * 75)

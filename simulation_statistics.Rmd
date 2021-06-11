@@ -24,6 +24,7 @@ plotIterationNums <- function(period_num){
 }
 
 LABEL_OFFSET = .05
+# We multiply the standard deviation to make it more readable
 STDEV_MULTIPLIER = 1000
 
 # Plot the mean price of each security as they change period by period
@@ -35,6 +36,9 @@ plotPricesByPeriod <- function(){
   num_periods = max(prices_by_period$period_num)
   for (state_num in c(0: num_states)) {
     cur <- prices_by_period[prices_by_period$state_num == state_num,]
+    if (nrow(cur) == 0){
+      next
+    }
     plot(cur$period_num, cur$mean, xlab = "Period number", ylab = "Mean", main = paste("Security", state_num, "price by period"), col = "red", pch = 19, ylim = 0:1, type="o")
     for (i in 3:6){
       text(x = c(0: num_periods), y = cur$mean + LABEL_OFFSET * (7 - i), labels = round(cur[,i], 3))
@@ -46,11 +50,14 @@ plotPricesByPeriod <- function(){
 # max_transactions represents the number of transactions we want to see from each security provided they exist
 plotPricesByTransaction <- function(max_transactions){
   prices_by_transaction <- data.frame(tbl(db, sql("SELECT * FROM prices_by_transaction")))
-  prices_by_transaction$st_dev <- round(prices_by_transaction * STDEV_MULTIPLIER)
+  prices_by_transaction$st_dev <- round(prices_by_transaction$st_dev * STDEV_MULTIPLIER)
   num_states = max(prices_by_transaction$state_num)
   
   for (state_num in c(0: num_states)) {
     cur <- head(prices_by_transaction[prices_by_transaction$state_num == state_num,], max_transactions)
+    if (nrow(cur) == 0){
+      next
+    }
     num_transactions = min(max_transactions - 1, nrow(cur))
     plot(cur$transaction_num, cur$mean, xlab = "Tranasction number", ylab = "Mean", main = paste("Security", state_num, "price by transaction"), col = "red", pch = 19, ylim = 0:1, type="o")
     for (i in 3:5){
@@ -61,8 +68,13 @@ plotPricesByTransaction <- function(max_transactions){
 ```
 
 
+```{r}
+# Enter the name of the database file you want to analyze
+db_name = "test3.db"
+```
+
+
 ```{r fig.width = 10}
-db_name = "test2.db"
 db <- DBI::dbConnect(RSQLite::SQLite(), db_name)
 #plotIterationNums(0)
 plotPricesByPeriod()
