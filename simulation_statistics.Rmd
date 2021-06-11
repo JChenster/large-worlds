@@ -19,6 +19,9 @@ plotIterationNums <- function(period_num){
   transactions <- transactions[transactions$"period_num" == period_num,]
   for (state_num in c(0: max(transactions$state_num))) {
     cur <- transactions[transactions$"state_num" == state_num,]
+    if (nrow(cur) == 0){
+      next
+    }
     plot(cur$transaction_num, cur$iteration_num, xlab = "Transaction Num", ylab = "Iteration Num", main = paste("Security", state_num), pch = 19, col = "blue")
   }
 }
@@ -70,13 +73,21 @@ plotPricesByTransaction <- function(max_transactions){
 
 ```{r}
 # Enter the name of the database file you want to analyze
-db_name = "test3.db"
+db_name = "test4.db"
 ```
 
 
 ```{r fig.width = 10}
 db <- DBI::dbConnect(RSQLite::SQLite(), db_name)
-#plotIterationNums(0)
+plotIterationNums(0)
+```
+
+
+```{r fig.width = 10}
 plotPricesByPeriod()
+```
+
+
+```{r fig.width = 10}
 plotPricesByTransaction(20)
 ```
