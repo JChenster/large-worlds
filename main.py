@@ -1,11 +1,11 @@
-from largeworld import LargeWorld
+from large_world import LargeWorld
 from simulation_statistics import obtainParameters, runStatistics
 import time
 
 def runInputFile(input_file):
     p = obtainParameters(input_file)
     start = time.time()
-    L = LargeWorld(p["N"], p["S"], p["E"], p["K"], p["fix_num_states"], p["by_midpoint"], p["file_name"])
+    L = LargeWorld(p["N"], p["S"], p["E"], p["K"], p["fix_num_states"], p["pick_agent_first"], p["by_midpoint"], p["file_name"])
     L.simulate(p["num_periods"], p["i"], p["r"])
     end = time.time()
     print(f"Successfully ran simulation! This simulation took {round(end - start, 1)} seconds to run. Results can be found in {input_file[:-3]}.db")
@@ -17,6 +17,7 @@ def handleInput():
     N = int(input("Enter how many small worlds you want: "))
     S = int(input("Enter number of states you want in the large world: "))
     E = int(input("Enter the endowment of each state you want each small world to have: "))
+    
     fix_flag = input("What do you want to fix? Type 'states' to fix the number of number of states in each small world or 'worlds' to fix the number of small worlds assigned to each state: ").strip().lower()
     if fix_flag == "states":
         fix_num_states = True
@@ -26,6 +27,7 @@ def handleInput():
         K = int(input("Enter number of small worlds you want each state to be assigned to: "))
     else:
         raise ValueError()
+    
     trade_flag = input("How should trade prices be calculated? Type 'midpoint' for the midpoint of the bid and ask or 'time' for the earlier offer: ").strip().lower()
     if trade_flag == "midpoint":
         by_midpoint = True
@@ -33,6 +35,15 @@ def handleInput():
         by_midpoint = False
     else:
         raise ValueError()
+
+    rand_flag = input("In each iteration, should we pick 'agent' or 'state' first? ").strip().lower()
+    if rand_flag == "agent":
+        pick_agent_first = True
+    elif rand_flag == "state":
+        pick_agent_first = False
+    else:
+        raise ValueError()
+    
     file_name = input("Enter what the files for this simulation should be named: ")
     num_periods = int(input("Enter how many periods you want: "))
     i = int(input("Enter how many trading iterations you want each period to have: "))
@@ -40,8 +51,8 @@ def handleInput():
 
     # Create an input file logging our inputs
     f = open(file_name + ".in", "w")
-    parameters = [N, S, E, K, fix_num_states, by_midpoint, file_name, num_periods, i, r]
-    parameter_names = ["N", "S", "E", "K", "fix_num_states", "by_midpoint", "file_name", "num_periods", "i", "r"]
+    parameters = [N, S, E, K, fix_num_states, by_midpoint, pick_agent_first, file_name, num_periods, i, r]
+    parameter_names = ["N", "S", "E", "K", "fix_num_states", "by_midpoint", "pick_agent_first", "file_name", "num_periods", "i", "r"]
     for i in range(len(parameters)):
         f.write(f"{parameter_names[i]}:{parameters[i]}\n")
     f.close()

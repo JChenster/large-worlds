@@ -2,6 +2,7 @@ import sqlite3
 import statistics as stat
 import database_manager as dm
 import plot_statistics as ps
+import time
 
 # returns dictionary of parameters
 def obtainParameters(input_file: str) -> dict:
@@ -18,7 +19,7 @@ def obtainParameters(input_file: str) -> dict:
     int_inputs = ["N", "S", "E", "K", "num_periods", "i", "r"]
     for i in int_inputs:
         p[i] = int(p[i])
-    bool_inputs = ["fix_num_states", "by_midpoint"]
+    bool_inputs = ["fix_num_states", "by_midpoint", "pick_agent_first"]
     for i in bool_inputs:
         p[i] = p[i] == "True"
     return p
@@ -27,6 +28,7 @@ def obtainParameters(input_file: str) -> dict:
 # Store calculations in prices table in database
 # Display quadrants of plots
 def pricePathByPeriod(cur, p: dict) -> None:
+    start = time.time()
     S = p["S"]
     dm.createPricesByPeriodTable(cur)
     num_periods = p["num_periods"]
@@ -60,9 +62,11 @@ def pricePathByPeriod(cur, p: dict) -> None:
         for i in range(num_periods):
             cur.execute("INSERT INTO prices_by_period VALUES (?, ?, ?, ?, ?, ?)", 
                         [state_num, i, means[i], sds[i], volumes[i], realized[i]])
-    print("Sucessfully added price path by period statistics to database")
+    end = time.time()
+    print(f"Sucessfully added price path by period statistics to database. This operation took {round(end-start, 1)} seconds to complete")
 
 def pricePathByTransaction(cur, p: dict) -> None:
+    start = time.time()
     # If we want to have all securities display up to the highest transaction, we just set max_transactions to the most number of transactions they have in a period
     S = p["S"]
     dm.createPricesByTransactionTable(cur)
@@ -91,7 +95,8 @@ def pricePathByTransaction(cur, p: dict) -> None:
         for t in x:
             cur.execute("INSERT INTO prices_by_transaction VALUES (?, ?, ?, ?, ?)",
                         [state_num, t, means[t], sds[t], volumes[t]])
-    print("Sucessfully added price path by transaction statistics to database")
+    end = time.time()
+    print(f"Sucessfully added price path by transaction statistics to database. This operation took {round(end-start, 1)} seconds to complete")
 
 def plotsMenu(cur, p) -> None:
     print("Here are the plots you can view:")
@@ -124,5 +129,5 @@ def runStatistics(db: str):
     con.commit()
 
     # Display the plots that we want
-    plotsMenu(cur, p)
+    # plotsMenu(cur, p)
     con.close()

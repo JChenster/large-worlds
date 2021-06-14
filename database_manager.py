@@ -75,3 +75,16 @@ def createPricesByTransactionTable(cur) -> None:
             volume INT NOT NULL
         )
     ''')
+
+def createSecurityBalancesTable(cur) -> None:
+    cur.execute("DROP TABLE IF EXISTS security_balances")
+    cur.execute('''
+        CREATE TABLE security_balances (
+            period_num INT NOT NULL,
+            agent_num INT NOT NULL,
+            state_num INT NOT NULL,
+            amount INT NOT NULL,
+            realized INT NOT NULL,
+            value INT NOT NULL
+        )
+    ''')
