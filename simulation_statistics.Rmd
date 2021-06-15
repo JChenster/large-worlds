@@ -119,7 +119,7 @@ plotPeriodPriceProgression <- function (period_num, flag = ""){
 
 ```{r}
 # Enter the name of the database file you want to analyze
-DB_NAME = "test4.db"
+DB_NAME = "test5.db"
 ```
 
 
@@ -141,5 +141,6 @@ plotPricesByPeriod()
 ```{r fig.width = 20}
 PERIOD_NUM = 0
 plotPeriodPriceProgression(PERIOD_NUM, "realized")
+plotPeriodPriceProgression(PERIOD_NUM, "unrealized")
 ```
 
