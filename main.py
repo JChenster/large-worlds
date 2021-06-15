@@ -2,10 +2,13 @@ from large_world import LargeWorld
 from simulation_statistics import obtainParameters, runStatistics
 import time
 
+DEFAULT_ALPHA = .05
+DEFAULT_BETA = .15
+
 def runInputFile(input_file):
     p = obtainParameters(input_file)
     start = time.time()
-    L = LargeWorld(p["N"], p["S"], p["E"], p["K"], p["fix_num_states"], p["pick_agent_first"], p["by_midpoint"], p["file_name"])
+    L = LargeWorld(p["N"], p["S"], p["E"], p["K"], p["fix_num_states"], p["pick_agent_first"], p["by_midpoint"], p["alpha"], p["beta"], p["file_name"])
     L.simulate(p["num_periods"], p["i"], p["r"])
     end = time.time()
     print(f"Successfully ran simulation! This simulation took {round(end - start, 1)} seconds to run. Results can be found in {input_file[:-3]}.db")
@@ -14,47 +17,54 @@ def runInputFile(input_file):
 def handleInput():
     print("-" * 75)
     # try:
-    N = int(input("Enter how many small worlds you want: "))
-    S = int(input("Enter number of states you want in the large world: "))
-    E = int(input("Enter the endowment of each state you want each small world to have: "))
-    
-    fix_flag = input("What do you want to fix? Type 'states' to fix the number of number of states in each small world or 'worlds' to fix the number of small worlds assigned to each state: ").strip().lower()
+    print("Inpute the following parameters")
+    N = int(input("Number of small worlds: "))
+    S = int(input("Number of states in large world: "))
+    E = int(input("Endowment of each security: "))
+    fix_flag = input("Type 'states' to fix the number of number of states in each small world or 'worlds' to fix the number of small worlds assigned to each state: ").strip().lower()
     if fix_flag == "states":
         fix_num_states = True
-        K = int(input("Enter number of states you want each small world to have: "))
+        K = int(input("States in each small world: "))
     elif fix_flag == "worlds":
         fix_num_states = False
-        K = int(input("Enter number of small worlds you want each state to be assigned to: "))
+        K = int(input("Number of small worlds each state is assigned to: "))
     else:
         raise ValueError()
-    
-    trade_flag = input("How should trade prices be calculated? Type 'midpoint' for the midpoint of the bid and ask or 'time' for the earlier offer: ").strip().lower()
+    trade_flag = input("How trade prices are calculated? Type 'midpoint' for the midpoint of the bid and ask or 'time' for the earlier offer: ").strip().lower()
     if trade_flag == "midpoint":
         by_midpoint = True
     elif trade_flag == "time":
         by_midpoint = False
     else:
         raise ValueError()
-
     rand_flag = input("In each iteration, should we pick 'agent' or 'state' first? ").strip().lower()
     if rand_flag == "agent":
         pick_agent_first = True
     elif rand_flag == "state":
         pick_agent_first = False
     else:
+        raise ValueError() 
+    num_periods = int(input("Number of periods: "))
+    i = int(input("Trading iterations in each period: "))
+    r = int(input("States realized during each period: "))
+    greeks_flag = input(f"Do you want to input custom values of alpha/beta or leave them at {DEFAULT_ALPHA} and {DEFAULT_BETA} respectively? (Yes/No) ").strip().lower()
+    if greeks_flag == "yes":
+        alpha = float(input("Alpha: "))
+        beta = float(input("Beta: "))
+    elif greeks_flag == "no":
+        alpha, beta = DEFAULT_ALPHA, DEFAULT_BETA
+    else:
         raise ValueError()
-    
-    file_name = input("Enter what the files for this simulation should be named: ")
-    num_periods = int(input("Enter how many periods you want: "))
-    i = int(input("Enter how many trading iterations you want each period to have: "))
-    r = int(input("Enter how many states you want to be realized during each period: "))
+    file_name = input("Prefix to name files of this simulation: ")
+
+    # Constants
+    PARAMETERS = [N, S, E, K, fix_num_states, by_midpoint, pick_agent_first, alpha, beta, num_periods, i, r, file_name]
+    PARAMETER_NAMES = ["N", "S", "E", "K", "fix_num_states", "by_midpoint", "pick_agent_first", "alpha", "beta", "num_periods", "i", "r", "file_name"]
 
     # Create an input file logging our inputs
     f = open(file_name + ".in", "w")
-    parameters = [N, S, E, K, fix_num_states, by_midpoint, pick_agent_first, file_name, num_periods, i, r]
-    parameter_names = ["N", "S", "E", "K", "fix_num_states", "by_midpoint", "pick_agent_first", "file_name", "num_periods", "i", "r"]
-    for i in range(len(parameters)):
-        f.write(f"{parameter_names[i]}:{parameters[i]}\n")
+    for i in range(len(PARAMETERS)):
+        f.write(f"{PARAMETER_NAMES[i]}:{PARAMETERS[i]}\n")
     f.close()
 
     runInputFile(file_name + ".in")

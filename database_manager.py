@@ -9,7 +9,10 @@ def createTransactionsTable(cur) -> None:
             buyer_id INT NOT NULL,
             seller_id INT NOT NULL,
             price REAL NOT NULL,
-            action INT NOT NULL
+            action INT NOT NULL,
+            bid REAL NOT NULL,
+            ask REAL NOT NULL,
+            spread REAL NOT NULL
         );
     ''')
 

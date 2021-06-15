@@ -2,24 +2,27 @@ from agent_intelligence import priceFirstOrderAdaptive
 
 class Market:
     # Attributes:
+    # Aunction-specific
     # bid: float                highest bid
     # bidder: State             State object with the highest bid
     # bidder_time: int          what iteration highest bidder made their offer in
     # ask: float                lowest ask
     # asker: State              State object with the lowest bid
     # asker_time: int           what iteration asker made their offer in
+
+    # Mechanism-specific
     # by_midpoint: bool         whether or not transaction prices should be the midpoint of the bid-ask spread, if False we use the price of the earlier order
     # reserve: List[State]      all State objects of the small  worlds that are participating in this market
     # cur: Cursor               Cursor object to execute database commands
     # num_transactions: int     number of transactions have been conducted in this market in this period
     # period_num: int           current period
+    # alpha: float              alpha for post-transaction first order adaptive process
     
-    def __init__(self, by_midpoint, cur):
-        self.by_midpoint = by_midpoint
+    def __init__(self, by_midpoint: bool, cur, alpha: float):
+        self.by_midpoint, self.cur, self.alpha = by_midpoint, cur, alpha
         self.reserve = []
         self.marketReset(-1)
         self.num_transactions = 0
-        self.cur = cur
         self.period_num = 0
 
     def __str__(self) -> str:
@@ -85,13 +88,13 @@ class Market:
         buyer_id = self.bidder.parent_world.agent_num
         seller_id = self.asker.parent_world.agent_num
         action = 1 if self.bidder_time > self.asker_time else 0
-        self.cur.execute("INSERT INTO transactions VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
-                        [self.period_num, time, state_num, self.num_transactions, buyer_id, seller_id, transaction_price, action])
+        self.cur.execute("INSERT INTO transactions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", 
+                        [self.period_num, time, state_num, self.num_transactions, buyer_id, seller_id, transaction_price, action, self.bid, self.ask, abs(self.bid - self.ask)])
 
         # Reset the market and adjust the aspiration of our agents who are aware of this state
         self.num_transactions += 1
         for state in self.reserve:
             if state_num not in state.parent_world.not_info:
-                state.updateAspiration(priceFirstOrderAdaptive(state.aspiration, transaction_price))
+                state.updateAspiration(priceFirstOrderAdaptive(state.aspiration, transaction_price, self.alpha))
         self.marketReset(time)
         return True

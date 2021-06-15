@@ -5,10 +5,10 @@ class MarketTable:
     # table: dict{state_num: Market}    the market for each state number
 
     # Parameters all taken from large world
-    def __init__(self, L, small_worlds, by_midpoint, cur):
+    def __init__(self, L, small_worlds: dict, by_midpoint: bool, cur, alpha: float):
         self.table = dict()
         for state_num in L:
-            self.table[state_num] = Market(by_midpoint, cur)
+            self.table[state_num] = Market(by_midpoint, cur, alpha)
         for small_world in small_worlds.values():
             for state_num, state in small_world.states.items():
                 self.table[state_num].reserveAdd(state)

@@ -37,3 +37,6 @@ class SmallWorld:
     def giveNotInfo(self, not_info) -> None:
         self.not_info = not_info
         self.C = self.num_states - len(self.not_info)
+
+    def getUncertainStates(self):
+        return list(filter(lambda s: s not in self.not_info, list(self.states.keys())))

@@ -4,6 +4,10 @@ import database_manager as dm
 import plot_statistics as ps
 import time
 
+INT_INPUTS = ["N", "S", "E", "K", "num_periods", "i", "r"]
+FLOAT_INPUTS = ["alpha", "beta"]
+BOOL_INPUTS = ["fix_num_states", "by_midpoint", "pick_agent_first"]
+
 # returns dictionary of parameters
 def obtainParameters(input_file: str) -> dict:
     f = open(input_file, "r")
@@ -16,11 +20,11 @@ def obtainParameters(input_file: str) -> dict:
     f.close()
     
     # Clean up our int/bool inputs
-    int_inputs = ["N", "S", "E", "K", "num_periods", "i", "r"]
-    for i in int_inputs:
+    for i in INT_INPUTS:
         p[i] = int(p[i])
-    bool_inputs = ["fix_num_states", "by_midpoint", "pick_agent_first"]
-    for i in bool_inputs:
+    for i in FLOAT_INPUTS:
+        p[i] = float(p[i])
+    for i in BOOL_INPUTS:
         p[i] = p[i] == "True"
     return p
 

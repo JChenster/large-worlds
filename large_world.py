@@ -7,16 +7,16 @@ import database_manager as dm
 
 class LargeWorld:
     # Attributes:
-    # N: int                                        number of small worlds
-    # S: int                                        number of states in L
-    # E: float                                      endowment of each security in each small world
-    # L: List[int]                                  union of states in small worlds
-    # small_worlds: dict{agent_num:SmallWorld}      dictionary of key agent numbers and value SmallWorld objects
-    # market_table: MarketTable                     our market making mechanism
-    # by_midpoint: bool                             whether or not transaction prices should be the midpoint of the bid-ask spread
-    #                                               if False we use the price of the earlier order
-    # con: Connection                               connection to database object
-    # cur: Cursor                                   Cursor object to execute database commands
+    # N: int                                    number of small worlds
+    # S: int                                    number of states in L
+    # E: float                                  endowment of each security in each small world
+    # L: List[int]                              union of states in small worlds
+    # small_worlds: dict{int:SmallWorld}        dictionary of key agent numbers and value SmallWorld objects
+    # market_table: MarketTable                 our market making mechanism
+    # by_midpoint: bool                         whether or not transaction prices should be the midpoint of the bid-ask spread
+    #                                           if False we use the price of the earlier order
+    # con: Connection                           connection to database object
+    # cur: Cursor                               Cursor object to execute database commands
 
     # Parameters
     # N: int                    number of small worlds
@@ -28,15 +28,17 @@ class LargeWorld:
     #                           if False we use the price of the earlier order
     # pick_agent_first: bool    if True, we randomly pick an agent then a state in an iteration.
     #                           if False, we randomly pick a state then an agent
+    # beta: float               beta for post-period first order adaptive process
     # file_name: str            what file names for this large world will be called
-    def __init__(self, N: int, S: int, E: int, K: int, fix_num_states: bool, by_midpoint: bool, pick_agent_first: bool, file_name: str):
+    def __init__(self, N: int, S: int, E: int, K: int, fix_num_states: bool, by_midpoint: bool, pick_agent_first: bool, 
+                alpha: float, beta: float, file_name: str):
         # Make sure our inputs are valid
         if fix_num_states and K > S:
             raise ValueError("Number of states in large world must be greater than number of states in small world")
         if not fix_num_states and K > N:
             raise ValueError("Number of small worlds must be greater than number of small worlds each state is in")
         
-        self.N, self.S, self.E = N, S, E
+        self.N, self.S, self.E, self.beta = N, S, E, beta
         self.by_midpoint = by_midpoint
         self.pick_agent_first = pick_agent_first
         self.small_worlds = dict()
@@ -73,7 +75,7 @@ class LargeWorld:
         self.cur = self.con.cursor()
         # Set up our market
         # We only include the states that are owned by some agents in our marketplace
-        self.market_table = MarketTable(self.L, self.small_worlds, self.by_midpoint, self.cur)
+        self.market_table = MarketTable(self.L, self.small_worlds, self.by_midpoint, self.cur, alpha)
 
     # String representation of large world and the small worlds and state within it
     def __str__(self) -> str:
@@ -90,6 +92,17 @@ class LargeWorld:
             # Initialize not_info by randomly choosing half of the agent's states not included in R 
             not_info = random.sample(not_realized_states, len(not_realized_states) // 2)
             small_world.giveNotInfo(not_info)
+            # If the agent knows a state is not realized, it's aspiration will be 0
+            for state_num in not_realized_states:
+                small_world.states[state_num].updateAspiration(0)
+            # If the agent is unsure, it first checks the aspiration backlog. Otherwise, sets aspiration to 1/C
+            for state_num in small_world.getUncertainStates():
+                state = small_world.states[state_num]
+                lookup = state.aspirationBacklogLookup()
+                if lookup == -1:
+                    state.updateAspiration(1 / state.parent_world.C)
+                else:
+                    state.updateAspiration(lookup)
 
     # Initialize aspiration level of our small worlds based on R
     def initalizeAspiration(self) -> None:
@@ -121,13 +134,14 @@ class LargeWorld:
                 self.cur.execute("INSERT INTO security_balances VALUES (?, ?, ?, ?, ?, ?)",
                                 [period_num, small_world.agent_num, state_num, state.amount, is_realized, is_realized * state.amount]
                 )
-                if state.amount > 0:
-                    if is_realized:
-                        small_world.balanceAdd(state.amount)
-                        state.updateAspiration(dividendFirstOrderAdaptive(state.aspiration, 1))
-                    else:
-                        state.updateAspiration(dividendFirstOrderAdaptive(state.aspiration, 0))
-                    state.amountReset()
+                # Pay out the dividends of a security and clear the security amounts
+                # We update the aspiration backlog of each security
+                if is_realized:
+                    small_world.balanceAdd(state.amount)
+                    state.updateAspirationBacklog(dividendFirstOrderAdaptive(state.aspiration, 1, self.beta))
+                else:
+                    state.updateAspirationBacklog(dividendFirstOrderAdaptive(state.aspiration, 0, self.beta))
+                state.amountReset()
     
     # Parameters:
     # period_num: int       what period it is 

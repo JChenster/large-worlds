@@ -119,28 +119,32 @@ plotPeriodPriceProgression <- function (period_num, flag = ""){
 
 ```{r}
 # Enter the name of the database file you want to analyze
-DB_NAME = "test5.db"
+DB_NAME = "test1.db"
+PERIOD_NUM = 1
+ITERATIONS_NUM = 3 * 10 ** 6
 ```
 
 
 ```{r fig.width = 10}
 db <- DBI::dbConnect(RSQLite::SQLite(), DB_NAME)
-plotIterationNums(0, 2 * 10 ** 6)
+plotIterationNums(PERIOD_NUM, ITERATIONS_NUM)
 ```
 
 
-```{r fig.width = 15}
+```{r fig.width = 15, fig.height = 7.5}
 plotPricesByPeriod()
 ```
 
 
-```{r fig.width = 15}
+```{r fig.width = 15, fig.height = 7.5}
 #plotPricesByTransaction(20)
 ```
 
-```{r fig.width = 20}
-PERIOD_NUM = 0
+```{r fig.width = 20, fig.height = 10}
 plotPeriodPriceProgression(PERIOD_NUM, "realized")
+```
+
+```{r fig.width = 20, fig.height = 10}
 plotPeriodPriceProgression(PERIOD_NUM, "unrealized")
 ```
 
