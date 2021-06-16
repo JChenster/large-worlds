@@ -1,5 +1,5 @@
 ---
-title: "Simulation Statistics"
+title: "Plot Large Worlds Simulation Statistics"
 author: "Jeffrey Chen"
 date: "Summer 2021"
 output:

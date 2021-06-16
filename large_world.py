@@ -84,39 +84,32 @@ class LargeWorld:
             ans += str(small_world)
         return ans
 
-    def giveMinimalIntelligence(self, R) -> None:
+    def giveMinimalIntelligence(self, period_num: int, R) -> None:
         # Iterate through each agent:
-        for small_world in self.small_worlds.values():
+        for agent_num, small_world in self.small_worlds.items():
             states = list(small_world.states.keys())
             not_realized_states = list(filter(lambda s: s not in R, states))
             # Initialize not_info by randomly choosing half of the agent's states not included in R 
             not_info = random.sample(not_realized_states, len(not_realized_states) // 2)
             small_world.giveNotInfo(not_info)
-            # If the agent knows a state is not realized, it's aspiration will be 0
-            for state_num in not_realized_states:
-                small_world.states[state_num].updateAspiration(0)
-            # If the agent is unsure, it first checks the aspiration backlog. Otherwise, sets aspiration to 1/C
-            for state_num in small_world.getUncertainStates():
-                state = small_world.states[state_num]
-                lookup = state.aspirationBacklogLookup()
-                if lookup == -1:
-                    state.updateAspiration(1 / state.parent_world.C)
-                else:
-                    state.updateAspiration(lookup)
-
-    # Initialize aspiration level of our small worlds based on R
-    def initalizeAspiration(self) -> None:
-        # Iterate through each agent:
-        for small_world in self.small_worlds.values():
-            not_info = small_world.not_info
-            # Agent updates aspiration level of states in not_info to 0
-            for state in not_info:
-                small_world.states[state].updateAspiration(0)
-            # Set aspiration levels for states with unknown payoff
-            C = small_world.num_states - len(not_info)
             for state_num, state in small_world.states.items():
-                if state_num not in not_info:
-                    state.updateAspiration(1/C)
+                # If the agent knows a state is not realized, it's aspiration will be 0
+                if state_num in not_realized_states:
+                    small_world.states[state_num].updateAspiration(0)
+                    is_not_info = 1
+                    is_backlog = 0
+                # If the agent is unsure, it first checks the aspiration backlog. Otherwise, sets aspiration to 1/C
+                else:
+                    is_not_info = 0
+                    lookup = state.aspirationBacklogLookup()
+                    if lookup == -1:
+                        state.updateAspiration(1 / state.parent_world.C)
+                        is_backlog = 0
+                    else:
+                        state.updateAspiration(lookup)
+                        is_backlog = 1
+                self.cur.execute("INSERT INTO aspirations VALUES (?, ?, ?, ?, ?, ?, ?)",
+                                [period_num, agent_num, state_num, small_world.C, state.aspiration, is_not_info, is_backlog])
 
     # Re-endow all small worlds at the beginning of a period if it is not the first
     def resetSmallWorlds(self) -> None:
@@ -154,11 +147,8 @@ class LargeWorld:
         # Initialize R by choosing r random states in the large world with equal probability to be realized 
         R = random.sample(range(self.S), r)
         dm.updateRealizationsTable(self.cur, period_num, self.S, R)
-        self.giveMinimalIntelligence(R)
-        if period_num == 0:
-            self.initalizeAspiration()
-        else:
-            self.resetSmallWorlds()
+        self.resetSmallWorlds()
+        self.giveMinimalIntelligence(period_num, R)
         # Conduct each market making iteration using a single processor 
         for j in range(i):
             if self.pick_agent_first:
@@ -189,6 +179,7 @@ class LargeWorld:
         dm.createAgentsTable(self.cur)
         dm.createRealizationsTable(self.cur)
         dm.createSecurityBalancesTable(self.cur)
+        dm.createAspirationsTable(self.cur)
         for period in range(num_periods):
             self.period(period, i, r)
         # Save and close database connection

@@ -91,3 +91,17 @@ def createSecurityBalancesTable(cur) -> None:
             value INT NOT NULL
         )
     ''')
+
+def createAspirationsTable(cur) -> None:
+    cur.execute("DROP TABLE IF EXISTS aspirations")
+    cur.execute('''
+        CREATE TABLE aspirations (
+            period_num INT NOT NULL,
+            agent_num INT NOT NULL,
+            state_num INT NOT NULL,
+            C INT NOT NULL,
+            start_aspiration REAL NOT NULL,
+            not_info INT NOT NULL,
+            backlog INT NOT NULL
+        )
+    ''')
