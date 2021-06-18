@@ -94,7 +94,7 @@ class LargeWorld:
             small_world.giveNotInfo(not_info)
             for state_num, state in small_world.states.items():
                 # If the agent knows a state is not realized, it's aspiration will be 0
-                if state_num in not_realized_states:
+                if state_num in not_info:
                     small_world.states[state_num].updateAspiration(0)
                     is_not_info = 1
                     is_backlog = 0
