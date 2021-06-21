@@ -168,6 +168,7 @@ class LargeWorld:
         self.realizePeriod(R, period_num)
         dm.updateAgentsTable(self.cur, period_num, self.small_worlds.values())
 
+    # Runs the simulation for our large world
     # parameters
     # num_periods: int      number of periods to run the simulation for
     # i: int                number of market making iterations
