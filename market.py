@@ -37,6 +37,7 @@ class Market:
         self.bidder = self.asker = None
         self.bidder_time = self.asker_time = time
 
+    # Reset the market at the end of a period
     def periodReset(self) -> None:
         self.marketReset(-1)
         self.num_transactions = 0

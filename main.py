@@ -5,13 +5,16 @@ import time
 DEFAULT_ALPHA = .05
 DEFAULT_BETA = .15
 
+# Given an input file, it runs a round of the simulation
 def runInputFile(input_file):
     p = obtainParameters(input_file)
     start = time.time()
     L = LargeWorld(p["N"], p["S"], p["E"], p["K"], p["fix_num_states"], p["pick_agent_first"], p["by_midpoint"], p["alpha"], p["beta"], p["file_name"])
     L.simulate(p["num_periods"], p["i"], p["r"])
     end = time.time()
-    print(f"Successfully ran simulation! This simulation took {round(end - start, 1)} seconds to run. Results can be found in {input_file[:-3]}.db")
+    db_name = input_file[:-3] + ".db"
+    print(f"Successfully ran simulation! This simulation took {round(end - start, 1)} seconds to run. Results can be found in {db_name}")
+    runStatistics(db_name)
 
 # Creates an input file based on what the user enters and runs a round of the simulation with it
 def handleInput():

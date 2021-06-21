@@ -84,6 +84,7 @@ class LargeWorld:
             ans += str(small_world)
         return ans
 
+    # Initialize each agent's aspiration for their securities at the beginning of a period
     def giveMinimalIntelligence(self, period_num: int, R) -> None:
         # Iterate through each agent:
         for agent_num, small_world in self.small_worlds.items():
@@ -136,10 +137,7 @@ class LargeWorld:
                     state.updateAspirationBacklog(dividendFirstOrderAdaptive(state.aspiration, 0, self.beta))
                 state.amountReset()
     
-    # Parameters:
-    # period_num: int       what period it is 
-    # i: int                number of market making iterations
-    # r: int                number of states that will be realized, must be <= S
+    # Runs one period of the simulation
     def period(self, period_num: int, i: int, r: int) -> None:
         if r > self.S:
             raise ValueError("r must be <= number of states in large world")

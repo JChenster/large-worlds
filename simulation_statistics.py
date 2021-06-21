@@ -1,14 +1,13 @@
 import sqlite3
 import statistics as stat
 import database_manager as dm
-import plot_statistics as ps
 import time
 
 INT_INPUTS = ["N", "S", "E", "K", "num_periods", "i", "r"]
 FLOAT_INPUTS = ["alpha", "beta"]
 BOOL_INPUTS = ["fix_num_states", "by_midpoint", "pick_agent_first"]
 
-# returns dictionary of parameters
+# Returns dictionary of parameters in input file
 def obtainParameters(input_file: str) -> dict:
     f = open(input_file, "r")
     p = dict()
@@ -28,9 +27,8 @@ def obtainParameters(input_file: str) -> dict:
         p[i] = p[i] == "True"
     return p
 
-# Calculate mean, standard deviation, and volumee of transactions of securities across different periods
-# Store calculations in prices table in database
-# Display quadrants of plots
+# Calculate mean, standard deviation, volume, and whether realized or not for securities across different periods
+# Store data in prices_by_period table in database
 def pricePathByPeriod(cur, p: dict) -> None:
     start = time.time()
     S = p["S"]
@@ -69,6 +67,8 @@ def pricePathByPeriod(cur, p: dict) -> None:
     end = time.time()
     print(f"Sucessfully added price path by period statistics to database. This operation took {round(end-start, 1)} seconds to complete")
 
+# Calculates mean, standard deviation, and volume for a security across different transaction numbers across all periods
+# Stores data in prices_by_transaction table in database
 def pricePathByTransaction(cur, p: dict) -> None:
     start = time.time()
     # If we want to have all securities display up to the highest transaction, we just set max_transactions to the most number of transactions they have in a period
@@ -102,26 +102,6 @@ def pricePathByTransaction(cur, p: dict) -> None:
     end = time.time()
     print(f"Sucessfully added price path by transaction statistics to database. This operation took {round(end-start, 1)} seconds to complete")
 
-def plotsMenu(cur, p) -> None:
-    print("Here are the plots you can view:")
-    print("\t'1' for a plot of price path by period")
-    print("\t'2' for a plot of price path by transaction number")
-    print("\t'q' to quit viewing plots")
-    i = input("Enter what plot(s) you want to see: ").strip().lower()
-    if i == "q":
-        return
-    if i == "1":
-        ps.plotPriceByPeriod(cur, p)
-    elif i == "2":
-        transaction_limit = input("How many transactions do you want to see at most for each security: ")
-        try:
-            ps.plotPriceByTransaction(cur, p, int(transaction_limit))
-        except:
-            pass
-    else:
-        print("Invalid input, try again!")
-    plotsMenu(cur, p)
-
 def runStatistics(db: str):
     con = sqlite3.connect(db)
     cur = con.cursor()
@@ -130,8 +110,6 @@ def runStatistics(db: str):
     # Create summary statistics in our database
     pricePathByPeriod(cur, p)
     pricePathByTransaction(cur, p)
-    con.commit()
 
-    # Display the plots that we want
-    # plotsMenu(cur, p)
+    con.commit()
     con.close()
