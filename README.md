@@ -16,7 +16,7 @@ python3 main.py
 
     * `state.py` Implements our concept of an Arrow-Debreu security owned by an agent
 
-  * `agent_intelligence` Mechanism to configure the intelligence of our agents
+  * `agent_intelligence.py` Mechanism to configure the intelligence of our agents
 
 * `market_table.py`, `market.py` Implements a double aunction market which we utilize to enable agents to trade
 

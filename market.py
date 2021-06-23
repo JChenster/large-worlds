@@ -1,8 +1,8 @@
-from agent_intelligence import priceFirstOrderAdaptive
+import agent_intelligence as ai
 
 class Market:
     # Attributes:
-    # Aunction-specific
+    # Auction-specific
     # bid: float                highest bid
     # bidder: State             State object with the highest bid
     # bidder_time: int          what iteration highest bidder made their offer in
@@ -17,9 +17,13 @@ class Market:
     # num_transactions: int     number of transactions have been conducted in this market in this period
     # period_num: int           current period
     # alpha: float              alpha for post-transaction first order adaptive process
+    # phi: int                  phi for representativeness module
+    # epsilon: float            epsilon for representativeness module
+    # price_history: float      list of transaction prices for this market in a period
+    # price_pattern: List[int]  stores a list of 1 for increasing price, -1 for decreasing price, and 0 for same
     
-    def __init__(self, by_midpoint: bool, cur, alpha: float):
-        self.by_midpoint, self.cur, self.alpha = by_midpoint, cur, alpha
+    def __init__(self, by_midpoint: bool, cur, alpha: float, phi: int, epsilon: float):
+        self.by_midpoint, self.cur, self.alpha, self.phi, self.epsilon = by_midpoint, cur, alpha, phi, epsilon
         self.reserve = []
         self.marketReset(-1)
         self.num_transactions = 0
@@ -36,6 +40,7 @@ class Market:
         self.ask = 1
         self.bidder = self.asker = None
         self.bidder_time = self.asker_time = time
+        self.price_history = self.price_pattern = []
 
     # Reset the market at the end of a period
     def periodReset(self) -> None:
@@ -93,9 +98,25 @@ class Market:
                         [self.period_num, time, state_num, self.num_transactions, buyer_id, seller_id, transaction_price, action, self.bid, self.ask, abs(self.bid - self.ask)])
 
         # Reset the market and adjust the aspiration of our agents who are aware of this state
+        # We will test to see if there is a string of increases or decreases that would trigger the representativeness module
         self.num_transactions += 1
+        if self.price_history:
+            if self.price_history[-1] < transaction_price:
+                self.price_pattern.append(1)
+            elif self.price_history[-1] > transaction_price:
+                self.price_pattern.append(-1)
+            else:
+                self.price_pattern.append(0)
+        self.price_history.append(transaction_price)
+        pattern = ai.detectPattern(self.phi, self.price_pattern)
+
         for state in self.reserve:
             if state_num not in state.parent_world.not_info:
-                state.updateAspiration(priceFirstOrderAdaptive(state.aspiration, transaction_price, self.alpha))
+                if pattern is None:
+                    state.updateAspiration(ai.priceFirstOrderAdaptive(state.aspiration, transaction_price, self.alpha))
+                # Implement representativeness module if pattern is detected
+                else:
+                    state.updateAspiration(ai.representativenessModule(self.epsilon, pattern))
+    
         self.marketReset(time)
         return True

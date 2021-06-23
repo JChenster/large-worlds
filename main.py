@@ -4,12 +4,15 @@ import time
 
 DEFAULT_ALPHA = .05
 DEFAULT_BETA = .15
+DEFAULT_PHI = 3
+DEFAULT_EPSILON = .1
 
 # Given an input file, it runs a round of the simulation
 def runInputFile(input_file):
     p = obtainParameters(input_file)
     start = time.time()
-    L = LargeWorld(p["N"], p["S"], p["E"], p["K"], p["fix_num_states"], p["pick_agent_first"], p["by_midpoint"], p["alpha"], p["beta"], p["file_name"])
+    # New input parameteres must be called here
+    L = LargeWorld(p["N"], p["S"], p["E"], p["K"], p["fix_num_states"], p["pick_agent_first"], p["by_midpoint"], p["alpha"], p["beta"], p["phi"], p["epsilon"], p["file_name"])
     L.simulate(p["num_periods"], p["i"], p["r"])
     end = time.time()
     db_name = input_file[:-3] + ".db"
@@ -50,19 +53,22 @@ def handleInput():
     num_periods = int(input("Number of periods: "))
     i = int(input("Trading iterations in each period: "))
     r = int(input("States realized during each period: "))
-    greeks_flag = input(f"Do you want to input custom values of alpha/beta or leave them at {DEFAULT_ALPHA} and {DEFAULT_BETA} respectively? (Yes/No) ").strip().lower()
+    greeks_flag = input(f"Do you want to input custom values of alpha/beta/phi/epsilon or leave them at {DEFAULT_ALPHA}/{DEFAULT_BETA}/{DEFAULT_PHI}/{DEFAULT_EPSILON} respectively? (Yes/No) ").strip().lower()
     if greeks_flag == "yes":
         alpha = float(input("Alpha: "))
         beta = float(input("Beta: "))
+        phi = float(input("Phi: "))
+        epsilon = float(input("Epsilon: "))
     elif greeks_flag == "no":
-        alpha, beta = DEFAULT_ALPHA, DEFAULT_BETA
+        alpha, beta, phi, epsilon = DEFAULT_ALPHA, DEFAULT_BETA, DEFAULT_PHI, DEFAULT_EPSILON
     else:
         raise ValueError()
     file_name = input("Prefix to name files of this simulation: ")
 
     # Constants
-    PARAMETERS = [N, S, E, K, fix_num_states, by_midpoint, pick_agent_first, alpha, beta, num_periods, i, r, file_name]
-    PARAMETER_NAMES = ["N", "S", "E", "K", "fix_num_states", "by_midpoint", "pick_agent_first", "alpha", "beta", "num_periods", "i", "r", "file_name"]
+    # Input parameters must be updated here
+    PARAMETERS = [N, S, E, K, fix_num_states, by_midpoint, pick_agent_first, alpha, beta, phi, epsilon, num_periods, i, r, file_name]
+    PARAMETER_NAMES = ["N", "S", "E", "K", "fix_num_states", "by_midpoint", "pick_agent_first", "alpha", "beta", "phi", "epsilon", "num_periods", "i", "r", "file_name"]
 
     # Create an input file logging our inputs
     f = open(file_name + ".in", "w")
@@ -93,10 +99,6 @@ def menu():
         runInputFile(input_file)
         # except:
         #     print("That's an invalid input file, try again")
-    elif i == "stats":
-        db = input("Enter database file name: ")
-        print("-" * 75)
-        runStatistics(db)
     else:
         print("That's not a valid option, try again")
     menu()

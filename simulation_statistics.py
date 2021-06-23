@@ -3,8 +3,8 @@ import statistics as stat
 import database_manager as dm
 import time
 
-INT_INPUTS = ["N", "S", "E", "K", "num_periods", "i", "r"]
-FLOAT_INPUTS = ["alpha", "beta"]
+INT_INPUTS = ["N", "S", "E", "K", "phi", "num_periods", "i", "r"]
+FLOAT_INPUTS = ["alpha", "beta", "epsilon"]
 BOOL_INPUTS = ["fix_num_states", "by_midpoint", "pick_agent_first"]
 
 # Returns dictionary of parameters in input file

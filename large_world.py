@@ -17,6 +17,7 @@ class LargeWorld:
     #                                           if False we use the price of the earlier order
     # con: Connection                           connection to database object
     # cur: Cursor                               Cursor object to execute database commands
+    # beta: float                               beta for post-period first order adaptive process
 
     # Parameters
     # N: int                    number of small worlds
@@ -28,10 +29,12 @@ class LargeWorld:
     #                           if False we use the price of the earlier order
     # pick_agent_first: bool    if True, we randomly pick an agent then a state in an iteration.
     #                           if False, we randomly pick a state then an agent
-    # beta: float               beta for post-period first order adaptive process
+    # alpha: float              alpha for post-transaction first order adaptive process
+    # phi: int                  phi for representativeness module
+    # epsilon: float            epsilon for representativeness module
     # file_name: str            what file names for this large world will be called
     def __init__(self, N: int, S: int, E: int, K: int, fix_num_states: bool, by_midpoint: bool, pick_agent_first: bool, 
-                alpha: float, beta: float, file_name: str):
+                alpha: float, beta: float, phi: int, epsilon: float, file_name: str):
         # Make sure our inputs are valid
         if fix_num_states and K > S:
             raise ValueError("Number of states in large world must be greater than number of states in small world")
@@ -75,7 +78,7 @@ class LargeWorld:
         self.cur = self.con.cursor()
         # Set up our market
         # We only include the states that are owned by some agents in our marketplace
-        self.market_table = MarketTable(self.L, self.small_worlds, self.by_midpoint, self.cur, alpha)
+        self.market_table = MarketTable(self.L, self.small_worlds, self.by_midpoint, self.cur, alpha, phi, epsilon)
 
     # String representation of large world and the small worlds and state within it
     def __str__(self) -> str:
