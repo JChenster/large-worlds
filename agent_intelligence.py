@@ -11,13 +11,20 @@ def dividendFirstOrderAdaptive(aspiration: float, dividend: int, beta: float) ->
     return beta * dividend + (1 - beta) * aspiration
 
 # Representativeness module
-# This price adjustment works complementary to post-transaction anchor and adjust
+# The representativeness adjustment works complementary to post-transaction anchor and adjust
 # If there has been a string of phi price transactions with decreasing/increasing prices, the we adjust aspiration to either 0 or epsilon
-# This module is only called when such a price path is detected with is_decrease telling us whether it's an increasing or decreasing path
+# There is a special case in which if a decreasing pattern is detected but epsilon is greater than our current aspiration, we don't do anything
 def detectPattern(phi: int, price_pattern: 'List[int]') -> str:
     if len(price_pattern) < phi or len(set(price_pattern[-1 * phi:])) != 1 or set(price_pattern[-1 * phi:]) == {0}:
         return None
     return "decreasing" if set(price_pattern[-1 * phi:]) == {-1} else "increasing"
 
-def representativenessModule(epsilon: float, pattern: str) -> float:
+# This adjustment is only used when such a price path is detected
+def representativenessAdjustment(aspiration: float, epsilon: float, pattern: str) -> float:
+    # No pattern
+    if pattern is None:
+        return aspiration
+    # There is a decreasing pattern but epsilon is above current aspiration
+    if pattern == "decreasing" and epsilon > aspiration:
+        return aspiration
     return epsilon if pattern == "decreasing" else 1

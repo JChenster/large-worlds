@@ -14,6 +14,7 @@ def runInputFile(input_file):
     # New input parameteres must be called here
     L = LargeWorld(p["N"], p["S"], p["E"], p["K"], p["fix_num_states"], p["pick_agent_first"], p["by_midpoint"], p["alpha"], p["beta"], p["phi"], p["epsilon"], p["file_name"])
     L.simulate(p["num_periods"], p["i"], p["r"])
+    print("Currently running simulation! This could take a few minutes...")
     end = time.time()
     db_name = input_file[:-3] + ".db"
     print(f"Successfully ran simulation! This simulation took {round(end - start, 1)} seconds to run. Results can be found in {db_name}")
@@ -42,14 +43,14 @@ def handleInput():
     elif trade_flag == "time":
         by_midpoint = False
     else:
-        raise ValueError()
+        raise ValueError("Invalid trade price flag")
     rand_flag = input("In each iteration, should we pick 'agent' or 'state' first? ").strip().lower()
     if rand_flag == "agent":
         pick_agent_first = True
     elif rand_flag == "state":
         pick_agent_first = False
     else:
-        raise ValueError() 
+        raise ValueError("Invalid iteration choice flag") 
     num_periods = int(input("Number of periods: "))
     i = int(input("Trading iterations in each period: "))
     r = int(input("States realized during each period: "))
@@ -86,7 +87,6 @@ def menu():
     print("-" * 75)
     print("'input': input parameters and run a round of the simulation")
     print("'run': run an already existing input file")
-    print("'stats' to run statistics for an already existing database")
     print("'q' to quit")
     i = input("Enter your choice here: ").strip().lower()
     if i == "q":

@@ -94,8 +94,10 @@ class Market:
         buyer_id = self.bidder.parent_world.agent_num
         seller_id = self.asker.parent_world.agent_num
         action = 1 if self.bidder_time > self.asker_time else 0
-        self.cur.execute("INSERT INTO transactions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", 
-                        [self.period_num, time, state_num, self.num_transactions, buyer_id, seller_id, transaction_price, action, self.bid, self.ask, abs(self.bid - self.ask)])
+        self.cur.execute("INSERT INTO transactions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", 
+                        [self.period_num, time, state_num, self.num_transactions, buyer_id, seller_id, 
+                        transaction_price, action, self.bid, self.bidder.aspiration, self.ask, self.asker.aspiration, self.bid - self.ask]
+                        )
 
         # Reset the market and adjust the aspiration of our agents who are aware of this state
         # We will test to see if there is a string of increases or decreases that would trigger the representativeness module
@@ -112,11 +114,8 @@ class Market:
 
         for state in self.reserve:
             if state_num not in state.parent_world.not_info:
-                if pattern is None:
-                    state.updateAspiration(ai.priceFirstOrderAdaptive(state.aspiration, transaction_price, self.alpha))
-                # Implement representativeness module if pattern is detected
-                else:
-                    state.updateAspiration(ai.representativenessModule(self.epsilon, pattern))
+                state.updateAspiration(ai.priceFirstOrderAdaptive(state.aspiration, transaction_price, self.alpha))
+                state.updateAspiration(ai.representativenessAdjustment(state.aspiration, self.epsilon, pattern))
     
         self.marketReset(time)
         return True

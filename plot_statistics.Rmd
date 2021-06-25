@@ -14,6 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r echo = F}
 library(dplyr)
 library(dbplyr)
+source("http://www.reuningscherer.net/s&ds230/Rfuncs/regJDRS.txt")
 
 # Create plots of iteration num vs transaction num in order to see what parameter is appropriate for numnber of iterations in a period
 # No plot is shown for securities that have no transactions
@@ -127,11 +128,11 @@ plotPeriodPriceProgression <- function (period_num, flag = ""){
 ```{r}
 # Playground for inputs
 # Enter the name of the database file you want to analyze
-DB_NAME = "shrunk1.db"
+DB_NAME = "shrunk3.db"
 # Period number you to investigate further
-PERIOD_NUM = 9
+PERIOD_NUM = 30
 # Number of iterations in each period in simulation
-ITERATIONS_NUM = 1 * 10 ** 6
+ITERATIONS_NUM = 2 * 10 ** 6
 ```
 
 
@@ -161,4 +162,90 @@ plotPeriodPriceProgression(PERIOD_NUM, "realized")
 ```{r fig.width = 20, fig.height = 10}
 plotPeriodPriceProgression(PERIOD_NUM, "unrealized")
 ```
+
+```{r echo = F}
+# Plots 2 box plots
+# First is a box plot of mean transaction price in a period based on whether security was realized vs unrealized
+# Second is a boxplot of the delta mean transaction price from the previous period based on whether the current period is realized vs unrealized
+# Then conducts various statistical analysis of realized vs unrealized values
+securityRealizedComparison <- function(prices_by_period, security_num){
+  pp <- prices_by_period[prices_by_period$state_num == security_num,]
+  # Make no plots if there are no transactions
+  if (nrow(pp) == 0){
+    return()
+  }
+  
+  # Mean transaction price
+  unrealized_mean <- mean(pp[pp$is_realized == "Yes",]$mean)
+  realized_mean <- mean(pp[pp$is_realized == "No",]$mean)
+  boxplot(pp$mean ~ pp$is_realized, xlab = "Is realized?", ylab = "Mean Transaction Price in a Period", main = paste("Security", security_num, "Mean Transaction Price, Not Realized vs Realized"), col = "lightpink")
+  points(c(1:2), c(unrealized_mean, realized_mean), col = "red", pch = 19)
+  text(x = c(1:2), y = c(unrealized_mean, realized_mean) + .025, labels = round(c(unrealized_mean, realized_mean), 3))
+  
+  # We conduct statistical tests to see if there is a statistically significant difference between realized and unrealized states
+  # We start with the mean transaction prices
+  
+  # T-Test
+  print(t.test(pp$mean ~ pp$is_realized))
+  
+  # One way analysis of variance
+  # We aim to have a factor below 2 between the maximum standard deviation and minimum standard deviation
+  sds <- tapply(pp$mean, pp$is_realized, sd)
+  print(paste("Factor difference between standard deviation between realized vs unrealized",max(sds) / min(sds)))
+  securityAOV <- aov(pp$mean ~ pp$is_realized)
+  print(summary(securityAOV))
+  myResPlots2(securityAOV)
+  
+  # Delta mean transaction price
+  max_period <- max(pp$period_num)
+  pp$delta <- NA
+  for (num_period in c(1:max_period)){
+    pp[num_period,]$delta <- pp$mean[num_period + 1] - pp$mean[num_period]
+  }
+  # We have to exclude the first period because there is no previous period to compare to
+  pp <- pp[!is.na(pp$delta),]
+  unrealized_delta_mean <- mean(pp[pp$is_realized == "No",]$delta)
+  realized_delta_mean <- mean(pp[pp$is_realized == "Yes",]$delta)
+  boxplot(pp$delta ~ pp$is_realized, xlab = "Is realized?", ylab = "Delta Mean Transaction Price in a Period", main = paste("Security", security_num, "Delta Mean Transaction Price, Not Realized vs Realized"), col = "lightyellow")
+  points(c(1:2), c(unrealized_delta_mean, realized_delta_mean), col = "red", pch = 19)
+  text(x = c(1:2), y = c(unrealized_delta_mean, realized_delta_mean) + .025, labels = round(c(unrealized_delta_mean, realized_delta_mean), 3))
+  
+
+  print(t.test(pp$delta ~ pp$is_realized))
+  
+  sds <- tapply(pp$delta, pp$is_realized, sd)
+  print(paste("Factor difference between standard deviation between realized vs unrealized",max(sds) / min(sds)))
+  securityAOV <- aov(pp$delta ~ pp$is_realized)
+  print(summary(securityAOV))
+  myResPlots2(securityAOV)
+}
+
+# Plots security realized comparison of mean transaction prices for all securities
+realizedComparison <- function(){
+  pp <- data.frame(tbl(db, sql("SELECT * FROM prices_by_period")))
+  pp$is_realized <- NA
+  pp[pp$realized == "1",]$is_realized <- "Yes"
+  pp[pp$realized == "0",]$is_realized <- "No"
+  
+  max_state <- max(pp$state_num)
+  for (num_state in c(0:max_state)){
+    securityRealizedComparison(pp, num_state)
+  }
+  
+  # One way analysis of variance
+  hist(pp[pp$is_realized == "Yes",]$mean, main = "Overall Mean Transaction Price, Realized", col = "lightgreen", xlab = "Mean Transaction Price in a Period", breaks = 50)
+  hist(pp[pp$is_realized == "No",]$mean, main = "Overall Mean Transaction Price, Unrealized", col = "lightsalmon", xlab = "Mean Transaction Price in a Period", breaks = 50)
+  # We aim to have a factor below 2 between the maximum standard deviation and minimum standard deviation
+  sds <- tapply(pp$mean, pp$is_realized, sd)
+  print(max(sds) / min(sds))
+  securityAOV <- aov(pp$mean ~ pp$is_realized)
+  print(summary(securityAOV))
+  myResPlots2(securityAOV)
+}
+```
+
+```{r}
+realizedComparison()
+```
+
 

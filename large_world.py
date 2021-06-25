@@ -129,8 +129,7 @@ class LargeWorld:
             for state_num, state in small_world.states.items():
                 is_realized = 1 if state_num in R else 0
                 self.cur.execute("INSERT INTO security_balances VALUES (?, ?, ?, ?, ?, ?)",
-                                [period_num, small_world.agent_num, state_num, state.amount, is_realized, is_realized * state.amount]
-                )
+                                [period_num, small_world.agent_num, state_num, state.amount, is_realized, is_realized * state.amount])
                 # Pay out the dividends of a security and clear the security amounts
                 # We update the aspiration backlog of each security
                 if is_realized:

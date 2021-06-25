@@ -11,7 +11,9 @@ def createTransactionsTable(cur) -> None:
             price REAL NOT NULL,
             action INT NOT NULL,
             bid REAL NOT NULL,
+            buyer_aspiration REAL NOT NULL,
             ask REAL NOT NULL,
+            seller_aspiration REAL NOT NULL,
             spread REAL NOT NULL
         );
     ''')

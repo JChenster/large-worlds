@@ -18,7 +18,7 @@ python3 main.py
 
   * `agent_intelligence.py` Mechanism to configure the intelligence of our agents
 
-* `market_table.py`, `market.py` Implements a double aunction market which we utilize to enable agents to trade
+* `market_table.py`, `market.py` Implements a double auction market which we utilize to enable agents to trade
 
 * `main.py` Receives input from user and conducts the necessary actions
 
