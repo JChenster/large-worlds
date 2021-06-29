@@ -20,11 +20,11 @@ def detectPattern(phi: int, price_pattern: 'List[int]') -> str:
     return "decreasing" if set(price_pattern[-1 * phi:]) == {-1} else "increasing"
 
 # This adjustment is only used when such a price path is detected
-def representativenessAdjustment(aspiration: float, epsilon: float, pattern: str) -> float:
+def representativenessAdjustment(state: 'State', epsilon: float, pattern: str) -> float:
     # No pattern
     if pattern is None:
-        return aspiration
+        return state.aspiration
     # There is a decreasing pattern but epsilon is above current aspiration
-    if pattern == "decreasing" and epsilon > aspiration:
-        return aspiration
-    return epsilon if pattern == "decreasing" else 1
+    if pattern == "decreasing" and epsilon > state.aspiration:
+        return state.aspiration
+    return epsilon if pattern == "decreasing" else state.dividend

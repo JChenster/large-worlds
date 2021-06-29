@@ -58,6 +58,7 @@ class LargeWorld:
                         d[state_num] = True
                 self.small_worlds[agent_num] = agent
             self.L = list(d.keys())
+            self.L.sort()
         # Each state is placed in K worlds
         else:
             # states_list represents an array with the states in each of the N agents
@@ -87,6 +88,50 @@ class LargeWorld:
             ans += str(small_world)
         return ans
 
+    # Sets the dividend of each security
+    def setDividends(self) -> None:
+        dm.createDividendsTable(self.cur)
+        is_custom = ""
+        while is_custom not in ["yes", "no"]:
+            is_custom = input("Do you want to enter custom dividends? (Yes/No) ").strip().lower()
+
+        is_custom = is_custom == "yes"
+        # We want to have different dividend payoffs for different types of traders
+        if is_custom:
+            num_trader_types = None
+            while num_trader_types is None or num_trader_types <= 0:
+                try:
+                    num_trader_types = int(input("Number of trader types: "))
+                except:
+                    pass
+            dividends = [dict() for _ in range(num_trader_types)]
+            # We have to know the dividend payoff for each state for a trader of each type
+            for i in range(num_trader_types):
+                print(f"Trader type {i}")
+                for state_num in self.L:
+                    dividend = None
+                    # Obtain dividend input for a state 
+                    while dividend is None:
+                        try:
+                            dividend = float(input(f"\tSecurity {state_num}: "))
+                        except:
+                            pass
+                    dividends[i][state_num] = dividend
+
+        for agent_num, agent in self.small_worlds.items():
+            if is_custom:
+                trader_type = None
+                while trader_type is None or trader_type < 0 or trader_type >= num_trader_types:
+                    try:
+                        trader_type = int(input(f"Enter type of agent {agent_num}: "))
+                    except:
+                        pass
+            for state_num, state in agent.states.items():
+                # Lookup the dividend we need from our dividends data structure
+                dividend = dividends[trader_type][state_num] if is_custom else 1
+                state.setDividend(dividend)
+                self.cur.execute("INSERT INTO dividends VALUES (?, ?, ?, ?)", [agent_num, trader_type, state_num, dividend])
+
     # Initialize each agent's aspiration for their securities at the beginning of a period
     def giveMinimalIntelligence(self, period_num: int, R) -> None:
         # Iterate through each agent:
@@ -102,12 +147,12 @@ class LargeWorld:
                     small_world.states[state_num].updateAspiration(0)
                     is_not_info = 1
                     is_backlog = 0
-                # If the agent is unsure, it first checks the aspiration backlog. Otherwise, sets aspiration to 1/C
+                # If the agent is unsure, it first checks the aspiration backlog. Otherwise, sets aspiration to dividend / C
                 else:
                     is_not_info = 0
                     lookup = state.aspirationBacklogLookup()
                     if lookup == -1:
-                        state.updateAspiration(1 / state.parent_world.C)
+                        state.updateAspiration(state.dividend / state.parent_world.C)
                         is_backlog = 0
                     else:
                         state.updateAspiration(lookup)
@@ -133,7 +178,7 @@ class LargeWorld:
                 # Pay out the dividends of a security and clear the security amounts
                 # We update the aspiration backlog of each security
                 if is_realized:
-                    small_world.balanceAdd(state.amount)
+                    small_world.balanceAdd(state.amount * state.dividend)
                     state.updateAspirationBacklog(dividendFirstOrderAdaptive(state.aspiration, 1, self.beta))
                 else:
                     state.updateAspirationBacklog(dividendFirstOrderAdaptive(state.aspiration, 0, self.beta))
@@ -163,7 +208,7 @@ class LargeWorld:
                 bid = random.uniform(0, rand_state.aspiration)
                 self.market_table.updateBidder(bid, rand_state, j)
             else:
-                ask = random.uniform(rand_state.aspiration, 1)
+                ask = random.uniform(rand_state.aspiration, rand_state.dividend)
                 self.market_table.updateAsker(ask, rand_state, j)    
         # Finish the period
         self.market_table.tableReset()

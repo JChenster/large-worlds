@@ -128,11 +128,11 @@ plotPeriodPriceProgression <- function (period_num, flag = ""){
 ```{r}
 # Playground for inputs
 # Enter the name of the database file you want to analyze
-DB_NAME = "shrunk3.db"
+DB_NAME = "market5.db"
 # Period number you to investigate further
-PERIOD_NUM = 30
+PERIOD_NUM = 0
 # Number of iterations in each period in simulation
-ITERATIONS_NUM = 2 * 10 ** 6
+ITERATIONS_NUM = 5 * 10 ** 5
 ```
 
 

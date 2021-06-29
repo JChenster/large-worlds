@@ -5,6 +5,7 @@ class State:
     # aspiration: float                     the aspiration level that small world assigns to this state
     # parent_world: SmallWorld              reference to small world that contains this state
     # aspiration_backlog: dict{int: float}  dictionary linking values of C with dividend first order adaptive
+    # dividend: float                       payoff of dividend
 
     # Initialize a state with its state number and its endowment amount
     def __init__(self, parent_world, state_num: int, endowment: float):
@@ -31,6 +32,9 @@ class State:
 
     def amountReset(self) -> None:
         self.amount = 0
+
+    def setDividend(self, dividend: float) -> None:
+        self.dividend = dividend
 
     def __str__(self):
         return f"{self.amount} of state {self.state_num}, aspiration: {round(self.aspiration,2)}"

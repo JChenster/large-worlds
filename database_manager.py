@@ -107,3 +107,14 @@ def createAspirationsTable(cur) -> None:
             backlog INT NOT NULL
         )
     ''')
+
+def createDividendsTable(cur) -> None:
+    cur.execute("DROP TABLE IF EXISTS dividends")
+    cur.execute('''
+        CREATE TABLE dividends (
+            agent_num INT NOT NULL,
+            trader_type INT NOT NULL,
+            state_num INT NOT NULL,
+            dividend REAL NOT NULL
+        )
+    ''')
