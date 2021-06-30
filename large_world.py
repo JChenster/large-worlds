@@ -41,13 +41,14 @@ class LargeWorld:
         if not fix_num_states and K > N:
             raise ValueError("Number of small worlds must be greater than number of small worlds each state is in")
         
-        self.N, self.S, self.E, self.beta = N, S, E, beta
+        self.S, self.E, self.beta = S, E, beta
         self.by_midpoint = by_midpoint
         self.pick_agent_first = pick_agent_first
         self.small_worlds = dict()
 
         # Each world get K states
         if fix_num_states:
+            self.N = N
             self.agents = range(N)
             # We put all the states that are in our large world in L 
             d = dict()
@@ -74,6 +75,7 @@ class LargeWorld:
                 if states_list[agent_num]:
                     agent = SmallWorld(agent_num, states_list[agent_num], self.E)
                     self.small_worlds[agent_num] = agent
+            self.N = len(self.small_worlds)
         # Set up our database
         self.con = sqlite3.connect(file_name + ".db")
         self.cur = self.con.cursor()
@@ -100,32 +102,33 @@ class LargeWorld:
         if is_custom:
             num_trader_types = None
             while num_trader_types is None or num_trader_types <= 0:
-                try:
-                    num_trader_types = int(input("Number of trader types: "))
-                except:
-                    pass
+                try: num_trader_types = int(input("Number of trader types: "))
+                except: pass
             dividends = [dict() for _ in range(num_trader_types)]
+            # This is an array where the i'th element represents how many traders are of type i
+            num_traders = [0 for _ in range(num_trader_types)]
             # We have to know the dividend payoff for each state for a trader of each type
             for i in range(num_trader_types):
                 print(f"Trader type {i}")
+                while num_traders[i] <= 0 or sum(num_traders) > self.N:
+                    try: num_traders[i] = int(input(f"\tNumber of agents that should be of type {i}: "))
+                    except: pass
                 for state_num in self.L:
                     dividend = None
                     # Obtain dividend input for a state 
                     while dividend is None:
-                        try:
-                            dividend = float(input(f"\tSecurity {state_num}: "))
-                        except:
-                            pass
+                        try: dividend = float(input(f"\tSecurity {state_num}: "))
+                        except: pass
                     dividends[i][state_num] = dividend
-
+            if sum(num_traders) != self.N:
+                raise ValueError("The sum of the traders of each type does not equal number of agents in large world")
+        i = 0
         for agent_num, agent in self.small_worlds.items():
-            if is_custom:
-                trader_type = None
-                while trader_type is None or trader_type < 0 or trader_type >= num_trader_types:
-                    try:
-                        trader_type = int(input(f"Enter type of agent {agent_num}: "))
-                    except:
-                        pass
+            # We find the next num_trader type that needs an agent
+            while num_traders[i] == 0:
+                i+=1
+            trader_type = i
+            num_traders[i] -= 1
             for state_num, state in agent.states.items():
                 # Lookup the dividend we need from our dividends data structure
                 dividend = dividends[trader_type][state_num] if is_custom else 1

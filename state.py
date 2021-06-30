@@ -1,11 +1,11 @@
 class State:
     # Attributes:
-    # state_num: int                        the number of the state in large world
-    # amount: int                           the amount of state that small world has
-    # aspiration: float                     the aspiration level that small world assigns to this state
-    # parent_world: SmallWorld              reference to small world that contains this state
-    # aspiration_backlog: dict{int: float}  dictionary linking values of C with dividend first order adaptive
-    # dividend: float                       payoff of dividend
+    # state_num: int                            the number of the state in large world
+    # amount: int                               the amount of state that small world has
+    # aspiration: float                         the aspiration level that small world assigns to this state
+    # parent_world: SmallWorld                  reference to small world that contains this state
+    # aspiration_backlog: dict{tuple: float}    dictionary linking not_info with dividend first order adaptive
+    # dividend: float                           payoff of dividend
 
     # Initialize a state with its state number and its endowment amount
     def __init__(self, parent_world, state_num: int, endowment: float):
@@ -18,13 +18,15 @@ class State:
     def updateAspiration(self, aspiration: float) -> None:
         self.aspiration = aspiration
 
+    # The aspiration backlog holds the aspiration of the last time the agent received the same pieces of information
+    # The number of combinations substantially increases with the number of pieces of information an agent gets in a period
     def updateAspirationBacklog(self, aspiration: float) -> None:
-        self.aspiration_backlog[self.parent_world.C] = aspiration
+        self.aspiration_backlog[tuple(self.parent_world.not_info)] = aspiration
 
     # Returns backlogged dividend first order adapative aspiration if agent has previously obtained this value of C bebfore
     # Otherwise, return -1
-    def aspirationBacklogLookup(self) -> int:
-        lookup = self.aspiration_backlog.get(self.parent_world.C)
+    def aspirationBacklogLookup(self) -> float:
+        lookup = self.aspiration_backlog.get(tuple(self.parent_world.not_info))
         return lookup if lookup is not None else -1
     
     def amountAdd(self, amount: int) -> None:

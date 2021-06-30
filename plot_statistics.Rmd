@@ -58,10 +58,40 @@ plotPricesByPeriod <- function(){
   }
 }
 
+# For each security, plot the the price of the last transaction in the period versus period numbers
+plotLastPricesByPeriod <- function(){
+  transactions <- data.frame(tbl(db, sql("SELECT * FROM transactions")))
+  max_state <- max(transactions$state_num)
+  max_period <- max(transactions$period_num)
+  for (security_num in c(0: max_state)) {
+    cur <- transactions[transactions$state_num == security_num,]
+    if (nrow(cur) == 0){
+      next
+    }
+    # Build an array with the last transaction price in each period
+    last_prices <- rep(NA, max_period + 1)
+    # Iterate through each period and find the last transaction that occurred and append it to our array
+    for (period_num in c(0: max_period)){
+      cur_period <- cur[cur$period_num == period_num, ]
+      last_transaction <- cur_period[cur_period$transaction_num == max(cur_period$transaction_num),]
+      if (nrow(last_transaction) == 0){
+        lastprices[period_num + 1] <- 0
+      }
+      else{
+        last_prices[period_num + 1] <- last_transaction$price[1]
+      }
+    }
+    plot(seq(0, max_period), last_prices, xlab = "Period Number", ylab = "Last Transaction Price", main = paste("Security", security_num, "Last Price By Period"), col = "forestgreen", pch = 19, ylim = 0:1, type = "o")
+    # Label our plot with the price as well as whether or not the security was realized in that period
+    text(x = c(0:max_period), y = last_prices + LABEL_OFFSET * 2, labels = round(last_prices, ROUND_VALUE))
+    text(x = c(0:max_period), y = last_prices + LABEL_OFFSET, labels = data.frame(tbl(db, sql(paste("SELECT realized FROM realizations WHERE state_num =", security_num))))$realized)
+  }
+}
+
 # Plot the mean price of each security from transaction to transaction across all periods
 # No plot is shown for securities that have no transactions
 # max_transactions: int     the number of transactions we want to see from each security provided they exist
-plotPricesByTransaction <- function(max_transactions){
+plotPricesByTransaction <- function(max_transactions, labels = T){
   prices_by_transaction <- data.frame(tbl(db, sql("SELECT * FROM prices_by_transaction")))
   prices_by_transaction$st_dev <- round(prices_by_transaction$st_dev * STDEV_MULTIPLIER)
   num_states <- max(prices_by_transaction$state_num)
@@ -73,8 +103,10 @@ plotPricesByTransaction <- function(max_transactions){
     }
     num_transactions = min(max_transactions - 1, nrow(cur))
     plot(cur$transaction_num, cur$mean, xlab = "Tranasction number", ylab = "Mean price", main = paste("Security", state_num, "mean price by transaction"), col = "green", pch = 19, ylim = c(0,1), type="o")
-    for (i in 3:5){
-      text(x = c(0: num_transactions), y = cur$mean + LABEL_OFFSET * (6 - i), labels = round(cur[,i], ROUND_VALUE))
+    if (labels){
+      for (i in 3:5){
+        text(x = c(0: num_transactions), y = cur$mean + LABEL_OFFSET * (6 - i), labels = round(cur[,i], ROUND_VALUE))
+      }
     }
   } 
 }
@@ -83,20 +115,22 @@ plotPricesByTransaction <- function(max_transactions){
 # transactions: dataframe     all the transactions that occured, imported from SQL database
 # period_num: int             period we want to plot price progression for
 # state_num: int              security we want to plot price progression for
-plotSecurityPeriodPriceProgression <- function (transactions, period_num, state_num){
+plotSecurityPeriodPriceProgression <- function (transactions, period_num, state_num, labels){
   transactions <- transactions[transactions$period_num == period_num & transactions$state_num == state_num, ]
   if (nrow(transactions) == 0){
     return()
   }
   plot(transactions$transaction_num, transactions$price, pch = 19, col = "purple", type = "o", ylim = c(0,1), xlab = "Transaction Number", ylab = "Price", main = paste("Period", period_num, "Security", state_num, "price by transaction"))
-  text(transactions$transaction_num, transactions$price + LABEL_OFFSET, labels = round(transactions$price, ROUND_VALUE))
+  if (labels){
+   text(transactions$transaction_num, transactions$price + LABEL_OFFSET, labels = round(transactions$price, ROUND_VALUE)) 
+  }
 }
 
 # Displays a set of price by transaction number plots in a given period
 # Optional flag parameter enables specification of what specific states to view
 #     "realized" displays only the plots of the realized securities
 #     "unrealized" displays only the plots of the unrealized securities
-plotPeriodPriceProgression <- function (period_num, flag = ""){
+plotPeriodPriceProgression <- function (period_num, flag = "", labels = T){
   transactions <- data.frame(tbl(db, sql("SELECT * FROM transactions")))
   
   if (flag == ""){
@@ -119,7 +153,7 @@ plotPeriodPriceProgression <- function (period_num, flag = ""){
   }
   
   for (state_num in states) {
-    plotSecurityPeriodPriceProgression(transactions, period_num, state_num)
+    plotSecurityPeriodPriceProgression(transactions, period_num, state_num, labels)
   }
 }
 ```
@@ -128,11 +162,11 @@ plotPeriodPriceProgression <- function (period_num, flag = ""){
 ```{r}
 # Playground for inputs
 # Enter the name of the database file you want to analyze
-DB_NAME = "market5.db"
+DB_NAME = "market5v3.db"
 # Period number you to investigate further
 PERIOD_NUM = 0
 # Number of iterations in each period in simulation
-ITERATIONS_NUM = 5 * 10 ** 5
+ITERATIONS_NUM = 1 * 10 ** 6
 ```
 
 
@@ -152,15 +186,20 @@ plotPricesByPeriod()
 
 
 ```{r fig.width = 15, fig.height = 7.5}
+plotLastPricesByPeriod()
+```
+
+
+```{r fig.width = 15, fig.height = 7.5}
 #plotPricesByTransaction(20)
 ```
 
 ```{r fig.width = 20, fig.height = 10}
-plotPeriodPriceProgression(PERIOD_NUM, "realized")
+plotPeriodPriceProgression(PERIOD_NUM, "realized", F)
 ```
 
 ```{r fig.width = 20, fig.height = 10}
-plotPeriodPriceProgression(PERIOD_NUM, "unrealized")
+plotPeriodPriceProgression(PERIOD_NUM, "unrealized", F)
 ```
 
 ```{r echo = F}
@@ -245,7 +284,7 @@ realizedComparison <- function(){
 ```
 
 ```{r}
-realizedComparison()
+#realizedComparison()
 ```
 
 
