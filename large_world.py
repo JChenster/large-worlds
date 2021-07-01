@@ -195,6 +195,7 @@ class LargeWorld:
         # Initialize R by choosing r random states in the large world with equal probability to be realized 
         R = random.sample(range(self.S), r)
         dm.updateRealizationsTable(self.cur, period_num, self.S, R)
+        # Clear all of our small worlds and give each agent information
         self.resetSmallWorlds()
         self.giveMinimalIntelligence(period_num, R)
         # Conduct each market making iteration using a single processor 
@@ -224,11 +225,13 @@ class LargeWorld:
     # i: int                number of market making iterations
     # r: int                number of states that will be realized, must be <= S
     def simulate(self, num_periods: int, i: int, r: int):
+        # Creates various tables to store information about simulation in database
         dm.createTransactionsTable(self.cur)
         dm.createAgentsTable(self.cur)
         dm.createRealizationsTable(self.cur)
         dm.createSecurityBalancesTable(self.cur)
         dm.createAspirationsTable(self.cur)
+        # Run each period
         for period in range(num_periods):
             self.period(period, i, r)
         # Save and close database connection

@@ -22,6 +22,7 @@ def runInputFile(input_file):
     runStatistics(db_name)
 
 # Creates an input file based on what the user enters and runs a round of the simulation with it
+# If at any point, an invalid parameter is entered, a Value Exception is raised
 def handleInput():
     print("-" * 75)
     # try:
