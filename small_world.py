@@ -8,6 +8,7 @@ class SmallWorld:
     # not_info: List[int]               list of the state numbers the agent knows are not realized
     # states: dict{state_num: State}    dictionary of states in this small world with key state number and value State object
     # C: int                            number of states for whom the outcome is uncertain
+    # uncertain: List[]                 list of states that are not in not_info or we are clued in about through representativeness adjustment
 
     # Intialize a small world with its agent_number (number of the small world in a large world),
     # a list of states that will be endowed with E each, as well as a cash balanace which is 0 by default
@@ -17,6 +18,7 @@ class SmallWorld:
         self.balance = balance
         self.not_info = []
         self.states = dict()
+        self.uncertain = []
         for state in states_list:
             s = State(self, state, E)
             self.states[state] = s
@@ -37,6 +39,10 @@ class SmallWorld:
     def giveNotInfo(self, not_info) -> None:
         self.not_info = not_info
         self.C = self.num_states - len(self.not_info)
+        self.uncertain = list(filter(lambda s: s not in self.not_info, list(self.states.keys())))
 
     def getUncertainStates(self):
-        return list(filter(lambda s: s not in self.not_info, list(self.states.keys())))
+        return self.uncertain
+
+    def removeUncertain(self, state: 'State'):
+        self.uncertain.remove(state)

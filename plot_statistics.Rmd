@@ -162,7 +162,7 @@ plotPeriodPriceProgression <- function (period_num, flag = "", labels = T){
 ```{r}
 # Playground for inputs
 # Enter the name of the database file you want to analyze
-DB_NAME = "market5v3.db"
+DB_NAME = "market5v4.db"
 # Period number you to investigate further
 PERIOD_NUM = 0
 # Number of iterations in each period in simulation

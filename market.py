@@ -114,8 +114,10 @@ class Market:
 
         for state in self.reserve:
             if state_num not in state.parent_world.not_info:
+                # 2 choices of the representativeness module
                 state.updateAspiration(ai.priceFirstOrderAdaptive(state.aspiration, transaction_price, self.alpha))
-                state.updateAspiration(ai.representativenessAdjustment(state, self.epsilon, pattern))
+                # state.updateAspiration(ai.representativenessAdjustment1(state, self.epsilon, pattern))
+                state.updateAspiration(ai.representativenessAdjustment2(state, self.epsilon, pattern))
     
         self.marketReset(time)
         return True

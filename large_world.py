@@ -117,7 +117,7 @@ class LargeWorld:
                     dividend = None
                     # Obtain dividend input for a state 
                     while dividend is None:
-                        try: dividend = float(input(f"\tSecurity {state_num}: "))
+                        try: dividend = float(input(f"\tDividend of security {state_num}: "))
                         except: pass
                     dividends[i][state_num] = dividend
             if sum(num_traders) != self.N:
@@ -182,7 +182,7 @@ class LargeWorld:
                 # We update the aspiration backlog of each security
                 if is_realized:
                     small_world.balanceAdd(state.amount * state.dividend)
-                    state.updateAspirationBacklog(dividendFirstOrderAdaptive(state.aspiration, 1, self.beta))
+                    state.updateAspirationBacklog(dividendFirstOrderAdaptive(state.aspiration, state.dividend, self.beta))
                 else:
                     state.updateAspirationBacklog(dividendFirstOrderAdaptive(state.aspiration, 0, self.beta))
                 state.amountReset()

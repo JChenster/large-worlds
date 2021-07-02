@@ -19,8 +19,9 @@ def detectPattern(phi: int, price_pattern: 'List[int]') -> str:
         return None
     return "decreasing" if set(price_pattern[-1 * phi:]) == {-1} else "increasing"
 
+# There are 2 instances of the representativeness adjustment module
 # This adjustment is only used when such a price path is detected
-def representativenessAdjustment(state: 'State', epsilon: float, pattern: str) -> float:
+def representativenessAdjustment1(state: 'State', epsilon: float, pattern: str) -> float:
     # No pattern
     if pattern is None:
         return state.aspiration
@@ -28,3 +29,19 @@ def representativenessAdjustment(state: 'State', epsilon: float, pattern: str) -
     if pattern == "decreasing" and epsilon > state.aspiration:
         return state.aspiration
     return epsilon if pattern == "decreasing" else state.dividend
+
+def representativenessAdjustment2(state: 'State', epsilon: float, pattern: str) -> float:
+    # Only enact change if there is a decreasing pattern
+    if pattern != "decreasing":
+        return state.aspiration
+    # Only multiply other securities by the approriate factor when we have not already ruled out this state
+    if state in state.parent_world.uncertain:
+        state.parent_world.C -= 1
+        state.parent_world.removeUncertain(state)
+        if state.parent_world.C != 0:
+            for other_state in state.parent_world.states.values():
+                # Only enact multiplier for states that are uncertain
+                if other_state is not state and other_state in state.parent_world.uncertain:
+                    # Shouldn't increase the aspiration level beyond the payoff of the security
+                    other_state.updateAspiration(min(state.aspiration * (state.parent_world.C + 1) / state.parent_world.C, state.dividend))
+    return epsilon if epsilon < state.aspiration else state.aspiration
