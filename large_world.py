@@ -124,11 +124,12 @@ class LargeWorld:
                 raise ValueError("The sum of the traders of each type does not equal number of agents in large world")
         i = 0
         for agent_num, agent in self.small_worlds.items():
-            # We find the next num_trader type that needs an agent
-            while num_traders[i] == 0:
-                i+=1
+            if is_custom:
+                # We find the next num_trader type that needs an agent
+                while num_traders[i] == 0:
+                    i+=1
+                num_traders[i] -= 1
             trader_type = i
-            num_traders[i] -= 1
             for state_num, state in agent.states.items():
                 # Lookup the dividend we need from our dividends data structure
                 dividend = dividends[trader_type][state_num] if is_custom else 1

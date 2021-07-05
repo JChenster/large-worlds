@@ -15,6 +15,7 @@ def dividendFirstOrderAdaptive(aspiration: float, dividend: int, beta: float) ->
 # If there has been a string of phi price transactions with decreasing/increasing prices, the we adjust aspiration to either 0 or epsilon
 # There is a special case in which if a decreasing pattern is detected but epsilon is greater than our current aspiration, we don't do anything
 def detectPattern(phi: int, price_pattern: 'List[int]') -> str:
+    # print(f"price pattern: {price_pattern[-1*phi:]}")
     if len(price_pattern) < phi or len(set(price_pattern[-1 * phi:])) != 1 or set(price_pattern[-1 * phi:]) == {0}:
         return None
     return "decreasing" if set(price_pattern[-1 * phi:]) == {-1} else "increasing"
@@ -35,13 +36,15 @@ def representativenessAdjustment2(state: 'State', epsilon: float, pattern: str) 
     if pattern != "decreasing":
         return state.aspiration
     # Only multiply other securities by the approriate factor when we have not already ruled out this state
-    if state in state.parent_world.uncertain:
+    if state.state_num in state.parent_world.getUncertainStates():
+        # print(f"Noticed decreasing pattern for {state.state_num}")
         state.parent_world.C -= 1
-        state.parent_world.removeUncertain(state)
+        state.parent_world.removeUncertain(state.state_num)
         if state.parent_world.C != 0:
             for other_state in state.parent_world.states.values():
                 # Only enact multiplier for states that are uncertain
-                if other_state is not state and other_state in state.parent_world.uncertain:
+                if other_state is not state and other_state.state_num in state.parent_world.uncertain:
                     # Shouldn't increase the aspiration level beyond the payoff of the security
                     other_state.updateAspiration(min(state.aspiration * (state.parent_world.C + 1) / state.parent_world.C, state.dividend))
+                    # print(f"Changed security: {other_state.state_num} to aspiration: {other_state.aspiration}")
     return epsilon if epsilon < state.aspiration else state.aspiration

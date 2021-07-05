@@ -3,24 +3,24 @@ import agent_intelligence as ai
 class Market:
     # Attributes:
     # Auction-specific
-    # bid: float                highest bid
-    # bidder: State             State object with the highest bid
-    # bidder_time: int          what iteration highest bidder made their offer in
-    # ask: float                lowest ask
-    # asker: State              State object with the lowest bid
-    # asker_time: int           what iteration asker made their offer in
+    # bid: float                    highest bid
+    # bidder: State                 State object with the highest bid
+    # bidder_time: int              what iteration highest bidder made their offer in
+    # ask: float                    lowest ask
+    # asker: State                  State object with the lowest bid
+    # asker_time: int               what iteration asker made their offer in
 
     # Mechanism-specific
-    # by_midpoint: bool         whether or not transaction prices should be the midpoint of the bid-ask spread, if False we use the price of the earlier order
-    # reserve: List[State]      all State objects of the small  worlds that are participating in this market
-    # cur: Cursor               Cursor object to execute database commands
-    # num_transactions: int     number of transactions have been conducted in this market in this period
-    # period_num: int           current period
-    # alpha: float              alpha for post-transaction first order adaptive process
-    # phi: int                  phi for representativeness module
-    # epsilon: float            epsilon for representativeness module
-    # price_history: float      list of transaction prices for this market in a period
-    # price_pattern: List[int]  stores a list of 1 for increasing price, -1 for decreasing price, and 0 for same
+    # by_midpoint: bool             whether or not transaction prices should be the midpoint of the bid-ask spread, if False we use the price of the earlier order
+    # reserve: List[State]          all State objects of the small  worlds that are participating in this market
+    # cur: Cursor                   Cursor object to execute database commands
+    # num_transactions: int         number of transactions have been conducted in this market in this period
+    # period_num: int               current period
+    # alpha: float                  alpha for post-transaction first order adaptive process
+    # phi: int                      phi for representativeness module
+    # epsilon: float                epsilon for representativeness module
+    # price_history: List[float]    list of transaction prices for this market in a period
+    # price_pattern: List[int]      stores a list of 1 for increasing price, -1 for decreasing price, and 0 for same
     
     def __init__(self, by_midpoint: bool, cur, alpha: float, phi: int, epsilon: float):
         self.by_midpoint, self.cur, self.alpha, self.phi, self.epsilon = by_midpoint, cur, alpha, phi, epsilon
@@ -28,6 +28,8 @@ class Market:
         self.marketReset(-1)
         self.num_transactions = 0
         self.period_num = 0
+        self.price_history = []
+        self.price_pattern = []
 
     def __str__(self) -> str:
         bidder_str = self.bidder.parent_world.agent_num if self.bidder else None
@@ -38,15 +40,18 @@ class Market:
     def marketReset(self, time: int) -> None:
         self.bid = 0
         self.ask = 1
-        self.bidder = self.asker = None
-        self.bidder_time = self.asker_time = time
-        self.price_history = self.price_pattern = []
+        self.bidder = None
+        self.asker = None
+        self.bidder_time = time
+        self.asker_time = time
 
     # Reset the market at the end of a period
     def periodReset(self) -> None:
         self.marketReset(-1)
         self.num_transactions = 0
         self.period_num += 1
+        self.price_history = []
+        self.price_pattern = []
 
     def reserveAdd(self, state) -> None:
         self.reserve.append(state)
@@ -114,8 +119,8 @@ class Market:
 
         for state in self.reserve:
             if state_num not in state.parent_world.not_info:
-                # 2 choices of the representativeness module
                 state.updateAspiration(ai.priceFirstOrderAdaptive(state.aspiration, transaction_price, self.alpha))
+                # 2 choices of the representativeness module
                 # state.updateAspiration(ai.representativenessAdjustment1(state, self.epsilon, pattern))
                 state.updateAspiration(ai.representativenessAdjustment2(state, self.epsilon, pattern))
     
