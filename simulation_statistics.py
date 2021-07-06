@@ -2,30 +2,7 @@ import sqlite3
 import statistics as stat
 import database_manager as dm
 import time
-
-INT_INPUTS = ["N", "S", "E", "K", "phi", "num_periods", "i", "r"]
-FLOAT_INPUTS = ["alpha", "beta", "epsilon"]
-BOOL_INPUTS = ["fix_num_states", "by_midpoint", "pick_agent_first"]
-
-# Returns dictionary of parameters in input file
-def obtainParameters(input_file: str) -> dict:
-    f = open(input_file, "r")
-    p = dict()
-    while True:
-        line = f.readline()
-        if not line:
-            break
-        p[line.split(":")[0]] = line.split(":")[1].strip()
-    f.close()
-    
-    # Clean up our int/bool inputs
-    for i in INT_INPUTS:
-        p[i] = int(p[i])
-    for i in FLOAT_INPUTS:
-        p[i] = float(p[i])
-    for i in BOOL_INPUTS:
-        p[i] = p[i] == "True"
-    return p
+from parse_input import obtainParameters
 
 # Calculate mean, standard deviation, volume, and whether realized or not for securities across different periods
 # Store data in prices_by_period table in database

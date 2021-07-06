@@ -17,7 +17,7 @@ class SmallWorld:
         self.num_states = len(states_list)
         self.balance = balance
         self.not_info = []
-        self.states = dict()
+        self.states = {}
         self.uncertain = []
         for state in states_list:
             s = State(self, state, E)

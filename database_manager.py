@@ -118,3 +118,12 @@ def createDividendsTable(cur) -> None:
             dividend REAL NOT NULL
         )
     ''')
+
+def createSimulationTables(cur) -> None:
+    # Creates various tables to store information about simulation in database
+    createDividendsTable(cur)
+    createTransactionsTable(cur)
+    createAgentsTable(cur)
+    createRealizationsTable(cur)
+    createSecurityBalancesTable(cur)
+    createAspirationsTable(cur)

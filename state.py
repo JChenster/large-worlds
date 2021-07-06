@@ -13,7 +13,7 @@ class State:
         self.amount = endowment
         self.aspiration = 0
         self.parent_world = parent_world
-        self.aspiration_backlog = dict()
+        self.aspiration_backlog = {}
 
     def updateAspiration(self, aspiration: float) -> None:
         self.aspiration = aspiration

@@ -19,7 +19,7 @@ class LargeWorld:
     # cur: Cursor                               Cursor object to execute database commands
     # beta: float                               beta for post-period first order adaptive process
 
-    # Parameters
+    # Parameters contained within dictionary p
     # N: int                    number of small worlds
     # S: states                 number of states in large world
     # E: float                  endowment that each small world has for each of its states
@@ -33,55 +33,70 @@ class LargeWorld:
     # phi: int                  phi for representativeness module
     # epsilon: float            epsilon for representativeness module
     # file_name: str            what file names for this large world will be called
-    def __init__(self, N: int, S: int, E: int, K: int, fix_num_states: bool, by_midpoint: bool, pick_agent_first: bool, 
-                alpha: float, beta: float, phi: int, epsilon: float, file_name: str):
+    def __init__(self, p: dict):
         # Make sure our inputs are valid
-        if fix_num_states and K > S:
+        if p["fix_num_states"] and p["K"] > p["S"]:
             raise ValueError("Number of states in large world must be greater than number of states in small world")
-        if not fix_num_states and K > N:
+        if not p["fix_num_states"] and p["K"] > p["N"]:
             raise ValueError("Number of small worlds must be greater than number of small worlds each state is in")
-        
-        self.S, self.E, self.beta = S, E, beta
-        self.by_midpoint = by_midpoint
-        self.pick_agent_first = pick_agent_first
-        self.small_worlds = dict()
+
+        self.S, self.E, self.beta = p["S"], p["E"], p["beta"]
+        self.by_midpoint = p["by_midpoint"]
+        self.pick_agent_first = p["pick_agent_first"]
+        self.small_worlds = {}
 
         # Each world get K states
-        if fix_num_states:
-            self.N = N
-            self.agents = range(N)
-            # We put all the states that are in our large world in L 
-            d = dict()
-            for agent_num in range(N):
-                agent = SmallWorld(agent_num, random.sample(range(S), K), self.E)
+        if p["fix_num_states"]:
+            self.N = p["N"]
+            # We put all the states that are in our large world in L
+            d = {}
+            for agent_num in range(self.N):
+                agent = SmallWorld(agent_num, random.sample(range(self.S), p["K"]), self.E)
                 for state_num in agent.states.keys():
                     if not d.get(state_num):
                         d[state_num] = True
                 self.small_worlds[agent_num] = agent
             self.L = list(d.keys())
             self.L.sort()
-        # Each state is placed in K worlds
         else:
             # states_list represents an array with the states in each of the N agents
-            self.L = range(S)
+            self.L = range(self.S)
             states_list = []
-            [states_list.append([]) for i in range(N)]
-            for state in range(S):
-                random_small_worlds = random.sample(range(N), K)
+            [states_list.append([]) for i in range(p["N"])]
+            for state in range(self.S):
+                random_small_worlds = random.sample(range(p["N"]), p["K"])
                 [states_list[i].append(state) for i in random_small_worlds]
-            for agent_num in range(N):
+            for agent_num in range(p["N"]):
                 # There is a possibility that an agent gets assigned no states
                 # In this case, it is excluded from the large world
                 if states_list[agent_num]:
                     agent = SmallWorld(agent_num, states_list[agent_num], self.E)
                     self.small_worlds[agent_num] = agent
             self.N = len(self.small_worlds)
+
         # Set up our database
-        self.con = sqlite3.connect(file_name + ".db")
+        self.con = sqlite3.connect(p["file_name"] + ".db")
         self.cur = self.con.cursor()
+        dm.createSimulationTables(self.cur)
+
+        # Set up the dividend of our agents
+        i = 0
+        for agent_num, agent in self.small_worlds.items():
+            if p["is_custom"]:
+                # Find the next num_trader type that needs an agent
+                while p["num_traders_by_type"][i] == 0:
+                    i+=1
+                p["num_traders_by_type"][i] -= 1
+            trader_type = i
+            for state_num, state in agent.states.items():
+                # Lookup the dividend we need from our dividends data structure
+                dividend = p[trader_type][state_num] if p["is_custom"] else 1
+                state.setDividend(dividend)
+                self.cur.execute("INSERT INTO dividends VALUES (?, ?, ?, ?)", [agent_num, trader_type, state_num, dividend])
+
         # Set up our market
         # We only include the states that are owned by some agents in our marketplace
-        self.market_table = MarketTable(self.L, self.small_worlds, self.by_midpoint, self.cur, alpha, phi, epsilon)
+        self.market_table = MarketTable(self.L, self.small_worlds, self.by_midpoint, self.cur, p["alpha"], p["phi"], p["epsilon"])
 
     # String representation of large world and the small worlds and state within it
     def __str__(self) -> str:
@@ -89,52 +104,6 @@ class LargeWorld:
         for small_world in self.small_worlds.values():
             ans += str(small_world)
         return ans
-
-    # Sets the dividend of each security
-    def setDividends(self) -> None:
-        dm.createDividendsTable(self.cur)
-        is_custom = ""
-        while is_custom not in ["yes", "no"]:
-            is_custom = input("Do you want to enter custom dividends? (Yes/No) ").strip().lower()
-
-        is_custom = is_custom == "yes"
-        # We want to have different dividend payoffs for different types of traders
-        if is_custom:
-            num_trader_types = None
-            while num_trader_types is None or num_trader_types <= 0:
-                try: num_trader_types = int(input("Number of trader types: "))
-                except: pass
-            dividends = [dict() for _ in range(num_trader_types)]
-            # This is an array where the i'th element represents how many traders are of type i
-            num_traders = [0 for _ in range(num_trader_types)]
-            # We have to know the dividend payoff for each state for a trader of each type
-            for i in range(num_trader_types):
-                print(f"Trader type {i}")
-                while num_traders[i] <= 0 or sum(num_traders) > self.N:
-                    try: num_traders[i] = int(input(f"\tNumber of agents that should be of type {i}: "))
-                    except: pass
-                for state_num in self.L:
-                    dividend = None
-                    # Obtain dividend input for a state 
-                    while dividend is None:
-                        try: dividend = float(input(f"\tDividend of security {state_num}: "))
-                        except: pass
-                    dividends[i][state_num] = dividend
-            if sum(num_traders) != self.N:
-                raise ValueError("The sum of the traders of each type does not equal number of agents in large world")
-        i = 0
-        for agent_num, agent in self.small_worlds.items():
-            if is_custom:
-                # We find the next num_trader type that needs an agent
-                while num_traders[i] == 0:
-                    i+=1
-                num_traders[i] -= 1
-            trader_type = i
-            for state_num, state in agent.states.items():
-                # Lookup the dividend we need from our dividends data structure
-                dividend = dividends[trader_type][state_num] if is_custom else 1
-                state.setDividend(dividend)
-                self.cur.execute("INSERT INTO dividends VALUES (?, ?, ?, ?)", [agent_num, trader_type, state_num, dividend])
 
     # Initialize each agent's aspiration for their securities at the beginning of a period
     def giveMinimalIntelligence(self, period_num: int, R) -> None:
@@ -226,12 +195,6 @@ class LargeWorld:
     # i: int                number of market making iterations
     # r: int                number of states that will be realized, must be <= S
     def simulate(self, num_periods: int, i: int, r: int):
-        # Creates various tables to store information about simulation in database
-        dm.createTransactionsTable(self.cur)
-        dm.createAgentsTable(self.cur)
-        dm.createRealizationsTable(self.cur)
-        dm.createSecurityBalancesTable(self.cur)
-        dm.createAspirationsTable(self.cur)
         # Run each period
         for period in range(num_periods):
             self.period(period, i, r)
