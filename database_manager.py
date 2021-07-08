@@ -89,8 +89,9 @@ def createSecurityBalancesTable(cur) -> None:
             agent_num INT NOT NULL,
             state_num INT NOT NULL,
             amount INT NOT NULL,
-            realized INT NOT NULL,
-            value INT NOT NULL
+            dividend NOT NULL,
+            value REAL NOT NULL,
+            realized INT NOT NULL
         )
     ''')
 

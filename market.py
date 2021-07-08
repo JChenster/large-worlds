@@ -19,10 +19,10 @@ class Market:
     # alpha: float                  alpha for post-transaction first order adaptive process
     # phi: int                      phi for representativeness module
     # epsilon: float                epsilon for representativeness module
+    # rep_flag: int                 what representativeness module to use
     # price_history: List[float]    list of transaction prices for this market in a period
     # price_pattern: List[int]      stores a list of 1 for increasing price, -1 for decreasing price, and 0 for same
-    
-    def __init__(self, by_midpoint: bool, cur, alpha: float, phi: int, epsilon: float):
+    def __init__(self, by_midpoint: bool, cur, alpha: float, phi: int, epsilon: float, rep_flag: int):
         self.by_midpoint, self.cur, self.alpha, self.phi, self.epsilon = by_midpoint, cur, alpha, phi, epsilon
         self.reserve = []
         self.marketReset(-1)
@@ -30,6 +30,7 @@ class Market:
         self.period_num = 0
         self.price_history = []
         self.price_pattern = []
+        self.rep_flag = rep_flag
 
     def __str__(self) -> str:
         bidder_str = self.bidder.parent_world.agent_num if self.bidder else None
@@ -121,8 +122,10 @@ class Market:
             if state_num not in state.parent_world.not_info:
                 state.updateAspiration(ai.priceFirstOrderAdaptive(state.aspiration, transaction_price, self.alpha))
                 # 2 choices of the representativeness module
-                # state.updateAspiration(ai.representativenessAdjustment1(state, self.epsilon, pattern))
-                state.updateAspiration(ai.representativenessAdjustment2(state, self.epsilon, pattern))
+                if self.rep_flag == 1:
+                    state.updateAspiration(ai.representativenessAdjustment1(state, self.epsilon, pattern))
+                elif self.rep_flag == 2:
+                    state.updateAspiration(ai.representativenessAdjustment2(state, self.epsilon, pattern))
     
         self.marketReset(time)
         return True

@@ -6,13 +6,13 @@ from parse_input import obtainParameters
 DEFAULT_ALPHA = .05
 DEFAULT_BETA = .15
 DEFAULT_PHI = 3
-DEFAULT_EPSILON = .1
+DEFAULT_EPSILON = .05
 
 # Given an input file, it runs a round of the simulation
 def runInputFile(input_file):
     p = obtainParameters(input_file)
     start = time.time()
-    # New input parameteres must be called here
+    # New input parameters must be called here
     L = LargeWorld(p)
     print("Currently running simulation! This could take a few minutes...")
     L.simulate(p["num_periods"], p["i"], p["r"])
@@ -65,6 +65,15 @@ def handleInput():
     while rand_flag not in ["agent", "state"]:
         rand_flag = input("In each iteration, should we pick 'agent' or 'state' first? ").strip().lower()
     p["pick_agent_first"] = (rand_flag == "agent")
+
+    backlog_flag = ""
+    while backlog_flag not in ["yes", "no"]:
+        backlog_flag = input("Do you want to use a backlog when giving agents intelligence? (Yes/No) ")
+    p["use_backlog"] = (backlog_flag == "yes")
+
+    p["rep_flag"] = ""
+    while p["rep_flag"] not in ["1", "2"]:
+        p["rep_flag"] = input("Do you want to use representativeness module '1' or '2'? ")
 
     # Simulation mechanism-specific numerical attributes
     p["num_periods"], p["i"], p["r"] = -1, -1, -1
@@ -139,14 +148,14 @@ def handleInput():
         for i in range(len(dividends)):
             p[i] = ",".join(map(str, dividends[i]))
 
-    parameters["file_name"] = input("Prefix to name files of this simulation: ")
+    p["file_name"] = input("Prefix to name files of this simulation: ")
 
     # Create an input file logging our inputs
-    with open(file_name + ".in", "w") as f:
+    with open(p["file_name"] + ".in", "w") as f:
         for var_name, var in p.items():
             f.write(f"{var_name}:{var}\n")
 
-    runInputFile(file_name + ".in")
+    runInputFile(p["file_name"] + ".in")
     # except:
     #     print("Your input was invalid, start over!")
     #     handleInput()

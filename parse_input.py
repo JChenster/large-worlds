@@ -1,11 +1,12 @@
-INT_INPUTS = ["N", "S", "E", "K", "phi", "num_periods", "i", "r", "num_trader_types"]
+INT_INPUTS = ["N", "S", "E", "K", "phi", "num_periods", "i", "r", "num_trader_types", "rep_flag"]
 FLOAT_INPUTS = ["alpha", "beta", "epsilon"]
-BOOL_INPUTS = ["fix_num_states", "by_midpoint", "pick_agent_first", "is_custom"]
+BOOL_INPUTS = ["fix_num_states", "by_midpoint", "pick_agent_first", "is_custom", "use_backlog"]
 STR_INPUTS = ["file_name"]
 
 # Returns dictionary of parameters in input file
 def obtainParameters(input_file: str) -> dict:
     p = {}
+    # Store all of our parameters in a dictionary linking variable name to variable value
     with open(input_file, "r") as f:
         while True:
             line = f.readline()
@@ -15,6 +16,7 @@ def obtainParameters(input_file: str) -> dict:
             p[left] = line.split(":")[1].strip()
     
     # Use copy of dict to prevent mutating it while iterating through it
+    # Converts each parameter to the correct data type
     for var_name, var in dict(p).items():
         if var_name in INT_INPUTS:
             p[var_name] = int(var)
@@ -24,10 +26,10 @@ def obtainParameters(input_file: str) -> dict:
             p[var_name] = (var == "True")
         elif var_name in STR_INPUTS:
             continue
-        # List inputs
+        # Input is a list
         else:
             p[var_name] = list(map(float, var.split(",")))
-            # Convert the key of dividends to ints
+            # Convert the key of dividend payoffs for a security numbers to integers
             try:
                 p[int(var_name)] = p[var_name]
                 del p[var_name]
