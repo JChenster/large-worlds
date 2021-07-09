@@ -22,22 +22,24 @@ class Market:
     # rep_flag: int                 what representativeness module to use
     # price_history: List[float]    list of transaction prices for this market in a period
     # price_pattern: List[int]      stores a list of 1 for increasing price, -1 for decreasing price, and 0 for same
+
+    # A Market object is created which represents the market for a particular security
     def __init__(self, by_midpoint: bool, cur, alpha: float, phi: int, epsilon: float, rep_flag: int):
-        self.by_midpoint, self.cur, self.alpha, self.phi, self.epsilon = by_midpoint, cur, alpha, phi, epsilon
+        self.cur = cur
+        self.by_midpoint, self.alpha, self.phi, self.epsilon, self.rep_flag = by_midpoint, alpha, phi, epsilon, rep_flag
         self.reserve = []
         self.marketReset(-1)
         self.num_transactions = 0
         self.period_num = 0
         self.price_history = []
         self.price_pattern = []
-        self.rep_flag = rep_flag
 
     def __str__(self) -> str:
         bidder_str = self.bidder.parent_world.agent_num if self.bidder else None
         asker_str = self.asker.parent_world.agent_num if self.asker else None
         return f"({round(self.bid,2)},{bidder_str},{self.bidder_time}) - ({round(self.ask,2)},{asker_str},{self.asker_time})"
     
-    # We reset all the bids and asks at the beginning of a period or after a successful transaction
+    # Reset all the bids and asks at the beginning of a period or after a successful transaction
     def marketReset(self, time: int) -> None:
         self.bid = 0
         self.ask = 1
@@ -46,7 +48,7 @@ class Market:
         self.bidder_time = time
         self.asker_time = time
 
-    # Reset the market at the end of a period
+    # Reset the market at the end of a period by resetting attributes specific to a particular period
     def periodReset(self) -> None:
         self.marketReset(-1)
         self.num_transactions = 0
@@ -57,39 +59,43 @@ class Market:
     def reserveAdd(self, state) -> None:
         self.reserve.append(state)
 
-    # We only update bidder if new bidder is higher or there is no current bidder
+    # Only update bidder if new bidder is higher or there is no current bidder
     # Return if update was done
     def updateBidder(self, new_bid: float, new_bidder, time: int) -> bool:
         if not self.bidder or new_bid > self.bid:
             self.bid = new_bid
             self.bidder = new_bidder
             self.bidder_time = time
+            # Check to see if this new bid enables a market transaction
             self.marketMake(time)
             return True
         return False
     
-    # We only update asker if they have more than 1 in their security balance and there is no current asker or their ask is lower
+    # Only update asker if they have more than 1 in their security balance and there is no current asker or their ask is lower
     # Return if update was done
     def updateAsker(self, new_ask: float, new_asker, time: int) -> bool:
         if new_asker.amount > 0 and (not self.asker or new_ask < self.ask):
             self.ask = new_ask
             self.asker = new_asker
             self.asker_time = time
+            # Check to see if this new bid enables a market transaction
             self.marketMake(time)
             return True
         return False
 
     # Checks to see if there is a market clearing transaction and if there is, it conducts the trade
     def marketMake(self, time: int) -> bool:
+        # There is not a market clearing transaction
         if not (self.bidder and self.asker) or self.bidder is self.asker or self.bid < self.ask:
             return False
+        # Determine transaction price
         if self.by_midpoint:
             transaction_price = (self.bid + self.ask) / 2
         else:
             transaction_price = self.bid if self.bidder_time < self.asker_time else self.ask
             
-        # Adjust amounts and balances
-        # We sell and buy 1 unit of a security at a time
+        # Adjust security amounts and balances
+        # Only sell and buy 1 unit of a security at a time
         self.asker.parent_world.balanceAdd(transaction_price)
         self.bidder.parent_world.balanceAdd(-1 * transaction_price)
         self.asker.amountAdd(-1)
@@ -106,7 +112,7 @@ class Market:
                         )
 
         # Reset the market and adjust the aspiration of our agents who are aware of this state
-        # We will test to see if there is a string of increases or decreases that would trigger the representativeness module
+        # Test to see if there is a string of increases or decreases that would trigger the representativeness module
         self.num_transactions += 1
         if self.price_history:
             if self.price_history[-1] < transaction_price:
@@ -118,8 +124,10 @@ class Market:
         self.price_history.append(transaction_price)
         pattern = ai.detectPattern(self.phi, self.price_pattern)
 
+        # Apply necessary changes to all participants in this market for this security
         for state in self.reserve:
             if state_num not in state.parent_world.not_info:
+                # Enact
                 state.updateAspiration(ai.priceFirstOrderAdaptive(state.aspiration, transaction_price, self.alpha))
                 # 2 choices of the representativeness module
                 if self.rep_flag == 1:
@@ -127,5 +135,6 @@ class Market:
                 elif self.rep_flag == 2:
                     state.updateAspiration(ai.representativenessAdjustment2(state, self.epsilon, pattern))
     
+        # Reset the market after a successful transaction
         self.marketReset(time)
         return True

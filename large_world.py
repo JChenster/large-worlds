@@ -22,6 +22,10 @@ class LargeWorld:
 
     # Initialize large world based on the parameters in input file
     def __init__(self, p: dict):
+        # Print all inputs received for debugging purposes
+        print("Inputs:")
+        for var_name, var in p.items():
+            print(f"{var_name} : {var}")
         # Make sure our inputs are valid
         if p["fix_num_states"] and p["K"] > p["S"]:
             raise ValueError("Number of states in large world must be greater than number of states in small world")
@@ -159,11 +163,13 @@ class LargeWorld:
                 self.cur.execute("INSERT INTO security_balances VALUES (?, ?, ?, ?, ?, ?, ?)",
                                 [period_num, small_world.agent_num, state_num, state.amount, state.dividend, is_realized * state.amount * state.dividend, is_realized])
                 # Pay out the dividends of a security and clear the security amounts
-                # Update the aspiration backlog of each security
+                # Update the aspiration backlog of each security if applicable
                 if is_realized:
                     small_world.balanceAdd(state.amount * state.dividend)
-                    state.updateAspirationBacklog(dividendFirstOrderAdaptive(state.aspiration, state.dividend, self.beta))
-                else:
+                    if self.use_backlog:
+                        state.updateAspirationBacklog(dividendFirstOrderAdaptive(state.aspiration, state.dividend, self.beta))
+                # Security is not realized and backlog system must be updated
+                elif self.use_backlog:
                     state.updateAspirationBacklog(dividendFirstOrderAdaptive(state.aspiration, 0, self.beta))
                 state.amountReset()
     
@@ -210,8 +216,9 @@ class LargeWorld:
     # r: int                number of states that will be realized, must be <= S
     def simulate(self, num_periods: int, i: int, r: int):
         # Run num_periods periods
-        for period in range(num_periods):
-            self.period(period, i, r)
+        for period_num in range(num_periods):
+            self.period(period_num, i, r)
+            print(f"Finished running period {period_num}")
         # Save and close database connection
         self.con.commit()
         self.con.close()

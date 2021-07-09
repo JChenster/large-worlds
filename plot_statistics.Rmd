@@ -111,7 +111,6 @@ plotPricesByTransaction <- function(max_transactions, labels = T){
   } 
 }
 
-EPSILON = .05
 # Plot price vs transaction number in a given period for a given security
 # transactions: dataframe     all the transactions that occured, imported from SQL database
 # period_num: int             period we want to plot price progression for
@@ -121,12 +120,13 @@ plotSecurityPeriodPriceProgression <- function (transactions, dividends, period_
   if (nrow(transactions) == 0){
     return()
   }
-  plot(transactions$transaction_num, transactions$price, pch = 19, col = "purple", type = "o", ylim = c(0,1), xlab = "Transaction Number", ylab = "Price", main = paste("Period", period_num, "Security", state_num, "price by transaction"))
+  plot(transactions$transaction_num, transactions$price, pch = 19, col = "black", type = "o", ylim = c(0,1), xlab = "Transaction Number", ylab = "Price", main = paste("Period", period_num, "Security", state_num, "price by transaction"))
   if (labels){
    text(transactions$transaction_num, transactions$price + LABEL_OFFSET, labels = round(transactions$price, ROUND_VALUE)) 
   }
-  dividends <- dividends[dividends$state_num == state_num,]
-  abline(h = c(EPSILON, max(dividends$dividend)), lwd = 3, lty = 2, col = c("red", "forestgreen"))
+  dividend_payoffs <- unique(dividends[dividends$state_num == state_num,]$dividend)
+  trader_types <- length(dividend_payoffs)
+  abline(h = c(EPSILON, dividend_payoffs, dividend_payoffs / C), lwd = c(3, rep(3, trader_types), rep(2, trader_types)), lty = 2, col = c("red", rep("forestgreen", trader_types), rep("orange", trader_types)))
 }
 
 # Displays a set of price by transaction number plots in a given period
@@ -166,11 +166,13 @@ plotPeriodPriceProgression <- function (period_num, flag = "", labels = T){
 ```{r}
 # Playground for inputs
 # Enter the name of the database file you want to analyze
-DB_NAME = "market5NoBacklogRep1Mini.db"
+DB_NAME = "market5BacklogRep2.db"
 # Period number you to investigate further
 PERIOD_NUM = 0
 # Number of iterations in each period in simulation
 ITERATIONS_NUM = 1 * 10 ** 6
+C = 2
+EPSILON = .05
 ```
 
 
@@ -230,7 +232,7 @@ plotRealizedPriceComparisonBySecurity <- function(){
           plot(cur_transactions$transaction_num, cur_transactions$price, pch = 19, col = "blue", type = "o", xlim = c(0, max(transactions[transactions$state_num == security_num & transactions$period_num %in% realized_periods,]$transaction_num)), ylim = c(0, 1), xlab = "Transaction Number", ylab = "Price", main = paste("Security", security_num, "Realized Price By Transaction"))
           dividend_payoffs <- unique(dividends[dividends$state_num == security_num,]$dividend)
           trader_types <- length(dividend_payoffs)
-          abline(h = c(EPSILON, dividend_payoffs, dividend_payoffs / 2), lty = 2, lwd = c(3, rep(3, trader_types), rep(1, trader_types)), col = c("red", rep("forestgreen", trader_types),rep("purple", trader_types)))
+          abline(h = c(EPSILON, dividend_payoffs, dividend_payoffs / 2), lty = 2, lwd = c(3, rep(3, trader_types), rep(2, trader_types)), col = c("red", rep("forestgreen", trader_types),rep("orange", trader_types)))
         }
         # Following periods
         else{
@@ -250,14 +252,14 @@ plotRealizedPriceComparisonBySecurity <- function(){
         }
         # First period
         if (period_num == unrealized_periods[1]){
-          plot(cur_transactions$transaction_num, cur_transactions$price, pch = 19, col = "orange", type = "o", xlim = c(0, max(transactions[transactions$state_num == security_num & transactions$period_num %in% unrealized_periods,]$transaction_num)), ylim = c(0, 1), xlab = "Transaction Number", ylab = "Price", main = paste("Security", security_num, "Unrealized Price By Transaction"))
+          plot(cur_transactions$transaction_num, cur_transactions$price, pch = 19, col = "purple", type = "o", xlim = c(0, max(transactions[transactions$state_num == security_num & transactions$period_num %in% unrealized_periods,]$transaction_num)), ylim = c(0, 1), xlab = "Transaction Number", ylab = "Price", main = paste("Security", security_num, "Unrealized Price By Transaction"))
           dividend_payoffs <- unique(dividends[dividends$state_num == security_num,]$dividend)
           trader_types <- length(dividend_payoffs)
-          abline(h = c(EPSILON, dividend_payoffs, dividend_payoffs / 2), lty = 2, lwd = c(3, rep(3, trader_types), rep(1, trader_types)), col = c("red", rep("forestgreen", trader_types), rep("purple", trader_types)))
+          abline(h = c(EPSILON, dividend_payoffs, dividend_payoffs / C), lty = 2, lwd = c(3, rep(3, trader_types), rep(2, trader_types)), col = c("red", rep("forestgreen", trader_types), rep("orange", trader_types)))
         # Following periods
         }
         else{
-          lines(cur_transactions$transaction_num, cur_transactions$price, pch = 19, type = "o", col = "orange")
+          lines(cur_transactions$transaction_num, cur_transactions$price, pch = 19, type = "o", col = "purple")
         }
       }
     }
@@ -350,7 +352,7 @@ realizedComparison <- function(){
 ```
 
 ```{r}
-#realizedComparison()
+realizedComparison()
 ```
 
 
