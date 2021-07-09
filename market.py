@@ -28,11 +28,10 @@ class Market:
         self.cur = cur
         self.by_midpoint, self.alpha, self.phi, self.epsilon, self.rep_flag = by_midpoint, alpha, phi, epsilon, rep_flag
         self.reserve = []
-        self.marketReset(-1)
-        self.num_transactions = 0
-        self.period_num = 0
-        self.price_history = []
-        self.price_pattern = []
+
+        # Initialize period as -1 becuase it will be incremented to 0 once period reset function is called
+        self.period_num = -1
+        self.periodReset()
 
     def __str__(self) -> str:
         bidder_str = self.bidder.parent_world.agent_num if self.bidder else None
@@ -60,34 +59,33 @@ class Market:
         self.reserve.append(state)
 
     # Only update bidder if new bidder is higher or there is no current bidder
-    # Return if update was done
+    # Returns transaction price if market clearing transaction was conducted, -1 otherwise
     def updateBidder(self, new_bid: float, new_bidder, time: int) -> bool:
         if not self.bidder or new_bid > self.bid:
             self.bid = new_bid
             self.bidder = new_bidder
             self.bidder_time = time
             # Check to see if this new bid enables a market transaction
-            self.marketMake(time)
-            return True
-        return False
+            return self.marketMake(time)
+        return -1
     
     # Only update asker if they have more than 1 in their security balance and there is no current asker or their ask is lower
-    # Return if update was done
+    # Returns transaction price if market clearing transaction was conducted, -1 otherwise
     def updateAsker(self, new_ask: float, new_asker, time: int) -> bool:
         if new_asker.amount > 0 and (not self.asker or new_ask < self.ask):
             self.ask = new_ask
             self.asker = new_asker
             self.asker_time = time
             # Check to see if this new bid enables a market transaction
-            self.marketMake(time)
-            return True
-        return False
+            return self.marketMake(time)
+        return -1
 
     # Checks to see if there is a market clearing transaction and if there is, it conducts the trade
+    # Returns either the price of the transaction or -1 to signify no transaction was conducted
     def marketMake(self, time: int) -> bool:
         # There is not a market clearing transaction
         if not (self.bidder and self.asker) or self.bidder is self.asker or self.bid < self.ask:
-            return False
+            return -1
         # Determine transaction price
         if self.by_midpoint:
             transaction_price = (self.bid + self.ask) / 2
@@ -137,4 +135,4 @@ class Market:
     
         # Reset the market after a successful transaction
         self.marketReset(time)
-        return True
+        return transaction_price

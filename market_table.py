@@ -3,6 +3,7 @@ from market import Market
 class MarketTable:
     # Attributes:
     # table: dict{state_num: Market}    the market for each state number
+    # latest_price: float               price of latest transaction conducted in this period
 
     # Parameters all taken from large world
     # Create MarketTable object
@@ -17,6 +18,7 @@ class MarketTable:
             # This esentially is a storage of all participants in that market
             for state_num, state in small_world.states.items():
                 self.table[state_num].reserveAdd(state)
+        self.latest_price = -1
     
     def __str__(self) -> str:
         ans = "Market Table:\n"
@@ -29,10 +31,21 @@ class MarketTable:
     def tableReset(self) -> None:
         for market in self.table.values():
             market.periodReset()
+        self.latest_price = -1
     
     # When a bid/ask is randomly generated, it gets passed along to the correct security market
-    def updateBidder(self, new_bid: float, new_bidder, time: int) -> bool:
-        return self.table[new_bidder.state_num].updateBidder(new_bid, new_bidder, time)
+    # It updates the latest price if a transaction was conducted
+    def updateBidder(self, new_bid: float, new_bidder, time: int):
+        price = self.table[new_bidder.state_num].updateBidder(new_bid, new_bidder, time)
+        if price != -1:
+            self.latest_price = price
 
-    def updateAsker(self, new_ask: float, new_asker, time: int) -> bool:
-        return self.table[new_asker.state_num].updateAsker(new_ask, new_asker, time)
+    def updateAsker(self, new_ask: float, new_asker, time: int):
+        price = self.table[new_asker.state_num].updateAsker(new_ask, new_asker, time)
+        if price != -1:
+            self.latest_price = price
+    
+    # Returns the last price of any transaction across all markets for the current period
+    # Returns -1 if no transactions have occured at all
+    def getLatestPrice(self) -> float:
+        return self.latest_price

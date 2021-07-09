@@ -8,7 +8,8 @@ class SmallWorld:
     # not_info: List[int]               list of the state numbers the agent knows are not realized
     # states: dict{state_num: State}    dictionary of states in this small world with key state number and value State object
     # C: int                            number of states for whom the outcome is uncertain
-    # uncertain: List[int]              list of state numbers that are not in not_info or we are clued in about through representativeness adjustment
+    # uncertain: dict{state_num: int}   keys are state numbers that are not in not_info or we are clued in about through representativeness adjustment
+    #                                   values are their respective dividend payoffs
 
     # Intialize a small world with its agent_number (number of the small world in a large world),
     # a list of states that will be endowed with E each, as well as a cash balanace which is 0 by default
@@ -39,10 +40,26 @@ class SmallWorld:
     def giveNotInfo(self, not_info) -> None:
         self.not_info = not_info
         self.C = self.num_states - len(self.not_info)
-        self.uncertain = list(filter(lambda s: s not in self.not_info, list(self.states.keys())))
+        self.uncertain = {}
+        uncertain_states = filter(lambda s: s not in self.not_info, list(self.states.keys()))
+        for state_num in uncertain_states:
+            self.uncertain[state_num] = self.states[state_num].getDividend()
 
-    def getUncertainStates(self):
-        return self.uncertain
+    def getUncertainStates(self) -> 'List':
+        return list(self.uncertain.keys())
 
     def removeUncertain(self, state_num: int) -> None:
-        self.uncertain.remove(state_num)
+        del self.uncertain[state_num]
+
+    # Used for representativeness module 3
+    # Returns the closest dividend to the latest price that is within uncertain states
+    # Return -1 if unable to find 
+    def getClosestDividend(self, latest_price: float) -> float:
+        minDiff = float("inf")
+        ans = -1
+        for state_num, dividend in self.uncertain.items():
+            # This security is closer to the latest price
+            if minDiff > abs(latest_price - dividend):
+                minDiff = abs(latest_price - dividend)
+                ans = dividend
+        return ans

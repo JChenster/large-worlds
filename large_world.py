@@ -5,6 +5,8 @@ from market_table import MarketTable
 from agent_intelligence import dividendFirstOrderAdaptive
 import database_manager as dm
 
+REPRESENTATIVENESS_MAX_PROBABILITY = .1
+
 class LargeWorld:
     # Attributes:
     # N: int                                    number of small worlds
@@ -19,6 +21,8 @@ class LargeWorld:
     # con: Connection                           connection to database object
     # cur: Cursor                               Cursor object to execute database commands
     # beta: float                               beta for post-period first order adaptive process
+    # rep_threshold: int                        Either None if representativeness module is 1 or 2
+    #                                           Or if it is module 3, its value is the iteration to start applying the representativeness heuristic
 
     # Initialize large world based on the parameters in input file
     def __init__(self, p: dict):
@@ -37,6 +41,7 @@ class LargeWorld:
         self.pick_agent_first = p["pick_agent_first"]
         self.use_backlog = p["use_backlog"]
         self.small_worlds = {}
+        self.rep_threshold = p.get("rep_threshold")
 
         # If we fix the number of states, each world get K states
         if p["fix_num_states"]:
@@ -186,7 +191,7 @@ class LargeWorld:
         self.resetSmallWorlds()
         self.giveMinimalIntelligence(period_num, R)
         # Conduct each market making iteration using a single processor 
-        for j in range(i):
+        for iteration_num in range(i):
             # Either pick a random agent and then a random state
             if self.pick_agent_first:
                 rand_agent = random.choice(list(self.small_worlds.values()))
@@ -200,10 +205,33 @@ class LargeWorld:
             rand_action = random.choice(["bid", "ask"])
             if rand_action == "bid":
                 bid = random.uniform(0, rand_state.aspiration)
-                self.market_table.updateBidder(bid, rand_state, j)
+                self.market_table.updateBidder(bid, rand_state, iteration_num)
             else:
                 ask = random.uniform(rand_state.aspiration, rand_state.dividend)
-                self.market_table.updateAsker(ask, rand_state, j)    
+                self.market_table.updateAsker(ask, rand_state, iteration_num)
+
+            # If representativeness module 3 is at play
+            if self.rep_threshold is not None and self.rep_threshold < iteration_num:
+                # First randomly generate a probability threshold that applies to all agents
+                p = random.uniform(0, REPRESENTATIVENESS_MAX_PROBABILITY)
+                # Generate a random number for each agent
+                # If their random number is below the probability threshold, enact the representativeness module
+                for agent in self.small_worlds.values():
+                    # Make sure that there is a previous transaction to base judgement on
+                    latest_price = self.market_table.getLatestPrice()
+                    if random.uniform(0, 1) < p and latest_price != -1:
+                        closest_dividend = agent.getClosestDividend(latest_price)
+                        for state_num, dividend in agent.uncertain.items():
+                            # This implicitly assumes agents will not have the same dividend for different securities
+                            # ie. representativeness heuristic 3 only works with heterogenous dividend preferences across securities
+                            # Assumption is CAL is set to state dividend if a security has the closest dividend payoff to the latest transaction
+                            if dividend == closest_dividend:
+                                agent.states[state_num].updateAspiration(dividend)
+                                # if period_num < 3: print(f"Period num: {period_num}, iteration num: {iteration_num}, deduced for agent {agent.agent_num}, security {state_num} must be realized")
+                            # All other securities are presumed to be unrealized
+                            else:
+                                agent.states[state_num].updateAspiration(0)
+
         # Finish the period
         self.market_table.tableReset()
         self.realizePeriod(R, period_num)

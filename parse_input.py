@@ -1,4 +1,4 @@
-INT_INPUTS = ["N", "S", "E", "K", "phi", "num_periods", "i", "r", "num_trader_types", "rep_flag"]
+INT_INPUTS = ["N", "S", "E", "K", "phi", "num_periods", "i", "r", "num_trader_types", "rep_flag", "rep_threshold"]
 FLOAT_INPUTS = ["alpha", "beta", "epsilon"]
 BOOL_INPUTS = ["fix_num_states", "by_midpoint", "pick_agent_first", "is_custom", "use_backlog"]
 STR_INPUTS = ["file_name"]

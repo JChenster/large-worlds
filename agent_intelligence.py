@@ -38,13 +38,19 @@ def representativenessAdjustment2(state: 'State', epsilon: float, pattern: str) 
     # Only multiply other securities by the approriate factor when we have not already ruled out this state
     if state.state_num in state.parent_world.getUncertainStates():
         # print(f"Noticed decreasing pattern for {state.state_num}")
+        # Rule out this state
         state.parent_world.C -= 1
         state.parent_world.removeUncertain(state.state_num)
-        if state.parent_world.C != 0:
+        newC = state.parent_world.C 
+        if newC != 0:
             for other_state in state.parent_world.states.values():
                 # Only enact multiplier for states that are uncertain
-                if other_state is not state and other_state.state_num in state.parent_world.uncertain:
-                    # Shouldn't increase the aspiration level beyond the payoff of the security
-                    other_state.updateAspiration(min(state.aspiration * (state.parent_world.C + 1) / state.parent_world.C, state.dividend))
+                if other_state is not state and other_state.state_num in state.parent_world.getUncertainStates():
+                    # There is only one security this agent is uncertain about, leading it to conclude it must be reaalized
+                    if newC == 1:
+                        other_state.updateAspiration(other_state.dividend)
+                    # Shouldn't increase the aspiration level beyond the payoff of the security 
+                    else:
+                        other_state.updateAspiration(min(state.aspiration * (state.parent_world.C + 1) / state.parent_world.C, state.dividend))
                     # print(f"Changed security: {other_state.state_num} to aspiration: {other_state.aspiration}")
     return epsilon if epsilon < state.aspiration else state.aspiration

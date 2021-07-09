@@ -72,8 +72,8 @@ def handleInput():
     p["use_backlog"] = (backlog_flag == "yes")
 
     p["rep_flag"] = ""
-    while p["rep_flag"] not in ["1", "2"]:
-        p["rep_flag"] = input("Do you want to use representativeness module '1' or '2'? ")
+    while p["rep_flag"] not in ["1", "2", "3"]:
+        p["rep_flag"] = input("Do you want to use representativeness module '1', '2', or '3'? ")
 
     # Simulation mechanism-specific numerical attributes
     p["num_periods"], p["i"], p["r"] = -1, -1, -1
@@ -105,6 +105,12 @@ def handleInput():
             p["epsilon"] = float(input("Epsilon: "))
     else:
         p["alpha"], p["beta"], p["phi"], p["epsilon"] = DEFAULT_ALPHA, DEFAULT_BETA, DEFAULT_PHI, DEFAULT_EPSILON
+
+    # Representativeness module 3 has an extra set of necessary parameters
+    if p["rep_flag"] == "3":
+        p["rep_threshold"] = -1
+        while p["rep_threshold"] < 0 or p["rep_threshold"] > p["i"]:
+            p["rep_threshold"] = int(input("Iteration number to start start implementing representativeness heuristic: "))
 
     # Handle custom dividends    
     is_custom = ""
