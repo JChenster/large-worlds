@@ -1,9 +1,11 @@
-INT_INPUTS = ["N", "S", "E", "K", "phi", "num_periods", "i", "r", "num_trader_types", "rep_flag", "rep_threshold"]
-FLOAT_INPUTS = ["alpha", "beta", "epsilon"]
+# If more inputs are added, they need to be added and categorized as such here
+INT_INPUTS = ["N", "S", "E", "market_type", "K", "phi", "num_periods", "i", "r", "num_trader_types", "rep_flag", "rep_threshold"]
+FLOAT_INPUTS = ["alpha", "beta", "epsilon", "rho"]
 BOOL_INPUTS = ["fix_num_states", "by_midpoint", "pick_agent_first", "is_custom", "use_backlog"]
 STR_INPUTS = ["file_name"]
 
-# Returns dictionary of parameters in input file
+# Reads in an input file of extension .in
+# Returns dictionary of parameters
 def obtainParameters(input_file: str) -> dict:
     p = {}
     # Store all of our parameters in a dictionary linking variable name to variable value

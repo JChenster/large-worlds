@@ -5,3 +5,4 @@ __pycache__/
 *.db-journal
 .Rhistory
 *.html
+INFO.md

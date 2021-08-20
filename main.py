@@ -7,40 +7,51 @@ DEFAULT_ALPHA = .05
 DEFAULT_BETA = .15
 DEFAULT_PHI = 3
 DEFAULT_EPSILON = .05
+DEFAULT_RHO = 5
+MARKET_TYPES = 2
 
-# Given an input file, it runs a round of the simulation
+# Given an input file with all the necessary parameters
+# It runs a round of the simulation
 def runInputFile(input_file):
     p = obtainParameters(input_file)
     start = time.time()
-    # New input parameters must be called here
+    # Initialize the large world
     L = LargeWorld(p)
+    # Run the simulation
     print("Currently running simulation! This could take a few minutes...")
     L.simulate(p["num_periods"], p["i"], p["r"])
     end = time.time()
+    # Various points of data are collected during the run time of the simulation
+    # And stored in a corresponding .db file
     db_name = input_file[:-3] + ".db"
     print(f"Successfully ran simulation! This simulation took {round(end - start, 1)} seconds to run. Results can be found in {db_name}")
     runStatistics(db_name)
 
 # Creates an input file based on what the user enters and runs a round of the simulation with it
 # If at any point, an invalid parameter is entered, a Value Exception is raised
+# Descriptions of each parameter is embedded within the input it prompts the user for
 def handleInput():
     print("-" * 75)
     # try:
     p = {}
-    print("Inpute the following p")
+    print("Inpute the following parameters:")
     
     # Numerical large world attributes
-    p["N"], p["S"], p["E"] = -1, -1, -1
+    # Begin these as dummy values of -1 to ensure that the user is prompted for an input
+    p["N"], p["S"], p["E"], p["market_type"] = -1, -1, -1, -1
+    # We continuously prompt the user for an input until we get a valid int input
+    # This serves as error checking and ensures that if a user makes a mistake, they don't have to start from scratch
     while p["N"] < 0:
         try: p["N"] = int(input("N, Number of small worlds aka. agents: "))
         except: pass
-
     while p["S"] < 0:
         try: p["S"] = int(input("S, Number of states in large world: "))
         except: pass
-
     while p["E"] < 0:
         try: p["E"] = int(input("E, Endowment of each security: "))
+        except: pass
+    while p["market_type"] not in range(1, MARKET_TYPES + 1):
+        try: p["market_type"] = int(input("Market type to use: "))
         except: pass
 
     # Boolean attributes
@@ -92,9 +103,9 @@ def handleInput():
 
     greeks_flag = ""
     while greeks_flag not in ["yes", "no"]:
-        greeks_flag = input(f"Do you want to input custom values of alpha/beta/phi/epsilon or leave them at {DEFAULT_ALPHA}/{DEFAULT_BETA}/{DEFAULT_PHI}/{DEFAULT_EPSILON} respectively? (Yes/No) ").strip().lower()
+        greeks_flag = input(f"Do you want to input custom values of alpha/beta/phi/epsilon/rho or leave them at {DEFAULT_ALPHA}/{DEFAULT_BETA}/{DEFAULT_PHI}/{DEFAULT_EPSILON}/{DEFAULT_RHO} respectively? (Yes/No) ").strip().lower()
     if greeks_flag == "yes":
-        p["alpha"], p["beta"], p["phi"], p["epsilon"] = -1, -1, -1, -1
+        p["alpha"], p["beta"], p["phi"], p["epsilon"], p["rho"] = -1, -1, -1, -1, -1
         while p["alpha"] < 0:
             p["alpha"] = float(input("Alpha: "))
         while p["beta"] < 0:
@@ -103,8 +114,11 @@ def handleInput():
             p["phi"] = float(input("Phi: "))
         while p["epsilon"] < 0: 
             p["epsilon"] = float(input("Epsilon: "))
+        while p["rho"] < 0:
+            p["rho"] = float(input("Rho: "))
     else:
-        p["alpha"], p["beta"], p["phi"], p["epsilon"] = DEFAULT_ALPHA, DEFAULT_BETA, DEFAULT_PHI, DEFAULT_EPSILON
+        p["alpha"], p["beta"], p["phi"], p["epsilon"], p["rho"] = DEFAULT_ALPHA, DEFAULT_BETA, DEFAULT_PHI, DEFAULT_EPSILON, DEFAULT_RHO
+
 
     # Representativeness module 3 has an extra set of necessary parameters
     if p["rep_flag"] == "3":
@@ -126,27 +140,29 @@ def handleInput():
             try: p["num_trader_types"] = int(input("Number of trader types: "))
             except: pass
 
-        # Matrix where matrix[i][j] represents the payoff for dividend for security j for traders of type i
+        # Matrix where dividends[i][j] represents the payoff for dividend for security j for traders of type i
         dividends = [[0] * p["S"] for _ in range(p["num_trader_types"])]
         # This is an array where the i'th element represents how many traders are of type i
         num_traders_by_type = [0 for _ in range(p["num_trader_types"])]
 
         # We have to know the dividend payoff for each state for a trader of each type
+        # So we will prompt the user for this
         for i in range(p["num_trader_types"]):
-            
+            # First, find out how many agents should be of this trader type
             print(f"Trader type {i}")
             while num_traders_by_type[i] <= 0 or sum(num_traders_by_type) > p["N"]:
                 try: num_traders_by_type[i] = int(input(f"\tNumber of agents that should be of type {i}: "))
                 except: pass
             
             for state_num in range(p["S"]):
-                # Obtain dividend input for a state 
+                # Obtain what the dividends should be for an agent of this type
                 dividend = None
                 while dividend is None:
                     try: dividend = float(input(f"\tDividend of security {state_num}: "))
                     except: pass
                 dividends[i][state_num] = dividend
 
+        # Error checking to make sure that every agent is assigned to a trader type
         if sum(num_traders_by_type) != p["N"]:
             raise ValueError("The sum of the traders of each type does not equal number of agents in large world")
     

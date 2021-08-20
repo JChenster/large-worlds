@@ -166,11 +166,11 @@ plotPeriodPriceProgression <- function (period_num, flag = "", labels = T){
 ```{r}
 # Playground for inputs
 # Enter the name of the database file you want to analyze
-DB_NAME = "market5BacklogRep2.db"
+DB_NAME = "market5Mike.db"
 # Period number you to investigate further
 PERIOD_NUM = 0
 # Number of iterations in each period in simulation
-ITERATIONS_NUM = 1 * 10 ** 6
+ITERATIONS_NUM = 5 * 10 ** 3
 C = 2
 EPSILON = .05
 ```
@@ -192,7 +192,7 @@ plotPricesByPeriod()
 
 
 ```{r fig.width = 15, fig.height = 7.5}
-plotLastPricesByPeriod()
+#plotLastPricesByPeriod()
 ```
 
 
@@ -232,7 +232,7 @@ plotRealizedPriceComparisonBySecurity <- function(){
           plot(cur_transactions$transaction_num, cur_transactions$price, pch = 19, col = "blue", type = "o", xlim = c(0, max(transactions[transactions$state_num == security_num & transactions$period_num %in% realized_periods,]$transaction_num)), ylim = c(0, 1), xlab = "Transaction Number", ylab = "Price", main = paste("Security", security_num, "Realized Price By Transaction"))
           dividend_payoffs <- unique(dividends[dividends$state_num == security_num,]$dividend)
           trader_types <- length(dividend_payoffs)
-          abline(h = c(EPSILON, dividend_payoffs, dividend_payoffs / 2), lty = 2, lwd = c(3, rep(3, trader_types), rep(2, trader_types)), col = c("red", rep("forestgreen", trader_types),rep("orange", trader_types)))
+          abline(h = c(EPSILON, dividend_payoffs), lty = 2, lwd = c(3, rep(3, trader_types)), col = c("red", rep("forestgreen", trader_types)))
         }
         # Following periods
         else{
@@ -255,7 +255,7 @@ plotRealizedPriceComparisonBySecurity <- function(){
           plot(cur_transactions$transaction_num, cur_transactions$price, pch = 19, col = "purple", type = "o", xlim = c(0, max(transactions[transactions$state_num == security_num & transactions$period_num %in% unrealized_periods,]$transaction_num)), ylim = c(0, 1), xlab = "Transaction Number", ylab = "Price", main = paste("Security", security_num, "Unrealized Price By Transaction"))
           dividend_payoffs <- unique(dividends[dividends$state_num == security_num,]$dividend)
           trader_types <- length(dividend_payoffs)
-          abline(h = c(EPSILON, dividend_payoffs, dividend_payoffs / C), lty = 2, lwd = c(3, rep(3, trader_types), rep(2, trader_types)), col = c("red", rep("forestgreen", trader_types), rep("orange", trader_types)))
+          abline(h = c(EPSILON, dividend_payoffs), lty = 2, lwd = c(3, rep(3, trader_types)), col = c("red", rep("forestgreen", trader_types)))
         # Following periods
         }
         else{
@@ -270,7 +270,7 @@ plotRealizedPriceComparisonBySecurity()
 ```
 
 
-```{r echo = F}
+```{r}
 # Plots 2 box plots
 # First is a box plot of mean transaction price in a period based on whether security was realized vs unrealized
 # Second is a boxplot of the delta mean transaction price from the previous period based on whether the current period is realized vs unrealized
@@ -352,7 +352,7 @@ realizedComparison <- function(){
 ```
 
 ```{r}
-realizedComparison()
+#realizedComparison()
 ```
 
 
