@@ -33,6 +33,7 @@ plotIterationNums <- function(period_num, y_limit){
   }
 }
 
+# Constants used to enhance readability of our plots
 ROUND_VALUE = 3
 LABEL_OFFSET = .05
 # We multiply the standard deviation to make it more readable
@@ -164,14 +165,20 @@ plotPeriodPriceProgression <- function (period_num, flag = "", labels = T){
 
 
 ```{r}
-# Playground for inputs
+#########################################################
+#             INPUTS SECTION                            #
+#########################################################
 # Enter the name of the database file you want to analyze
 DB_NAME = "market5MikeTest.db"
-# Period number you to investigate furthers
+# Period number you to investigate further for functions such as plotIterationNums, plotPeriodPriceProgression
 PERIOD_NUM = 0
-# Number of iterations in each period in simulation
+# Number of iterations in each period in simulation so that our graphs can display an appropriate y upper bound
+# This is due to the fact that the upper bound for iterations cannot be found in our database
 ITERATIONS_NUM = 5 * 10 ** 3
+# This input is valuable when looking at the expected value of aspiration levels of uncertain securities when they are dividend / C
+# Lines corresponding to this value can be found in our price plots
 C = 2
+# This is only relevant when investigating the plots of simulations that use representativeness module 1 or 2s
 EPSILON = .05
 ```
 
@@ -352,6 +359,7 @@ realizedComparison <- function(){
 ```
 
 ```{r}
+# Makes various statistical comparisons between periods in which a security is realized vs unrealized
 #realizedComparison()
 ```
 
