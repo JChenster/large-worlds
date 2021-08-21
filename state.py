@@ -41,5 +41,14 @@ class State:
     def getDividend(self) -> float:
         return self.dividend
 
+    def getStateNum(self) -> int:
+        return self.state_num
+
+    def getAspiration(self) -> float:
+        return self.aspiration
+
+    def  getAmount(self) -> int:
+        return self.amount
+
     def __str__(self):
         return f"{self.amount} of state {self.state_num}, aspiration: {round(self.aspiration,2)}"

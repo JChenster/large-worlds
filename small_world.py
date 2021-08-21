@@ -63,3 +63,25 @@ class SmallWorld:
                 minDiff = abs(latest_price - dividend)
                 ans = dividend
         return ans
+
+    def getStatesMap(self) -> dict:
+        return self.states
+
+    def getNotInfo(self) -> 'List[int]':
+        return self.not_info
+
+    def getAgentNum(self) -> int:
+        return self.agent_num
+
+    def getC(self) -> int:
+        return self.C
+
+    def getStateObjects(self) -> 'List[States]':
+        return list(self.states.values())
+
+    def getUncertainStatesMap(self) -> dict:
+        return self.uncertain
+
+    # Returns security object corresponding to security_num desired
+    def getSecurity(self, security_num) -> State:
+        return self.states[security_num]

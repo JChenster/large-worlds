@@ -8,6 +8,10 @@ DEFAULT_BETA = .15
 DEFAULT_PHI = 3
 DEFAULT_EPSILON = .05
 DEFAULT_RHO = 5
+# Number of market types available for configuration
+# Market type 1 corresponds to the continuous double auction market envisioned for Large Worlds
+# Market type 2 is a semi-continous double auction market implemented by Mike 
+# where each agent must generate a bid or ask for each of its securities before any transactions are cleared
 MARKET_TYPES = 2
 
 # Given an input file with all the necessary parameters
@@ -101,6 +105,12 @@ def handleInput():
         try: p["r"] = int(input("r, States realized during each period: "))
         except: pass
 
+    # The greek parameters refer to various values to be used for various ways to adjust the aspiration of agents
+    # Alpha is used in the first order adaptive process following a transaction in a market
+    # Beta is used for post-period dividend adjustments, primarily used in the case of the existence of an aspiration backlog
+    # Phi and epsilon are used for representativeness module 1 and 2
+    # Phi represents how many consecutive transactions must be of a particular pattern before triggering the rep module
+    # Epsilon represents the lower bound of what CAL should be set to if such a pattern is detected
     greeks_flag = ""
     while greeks_flag not in ["yes", "no"]:
         greeks_flag = input(f"Do you want to input custom values of alpha/beta/phi/epsilon/rho or leave them at {DEFAULT_ALPHA}/{DEFAULT_BETA}/{DEFAULT_PHI}/{DEFAULT_EPSILON}/{DEFAULT_RHO} respectively? (Yes/No) ").strip().lower()

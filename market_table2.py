@@ -3,16 +3,15 @@ from market2 import Market2
 class MarketTable2:
     # Attributes:
     # table: dict{state_num: Market}    the market for each state number
-    # latest_price: float               price of latest transaction conducted in this period
 
     # Parameters all taken from large world
     # Create MarketTable object
     # MarketTable is a map that links a security number with its Market object
-    def __init__(self, L, small_worlds: dict, by_midpoint: bool, cur, alpha: float, phi: int, epsilon: float, rep_flag: int):
+    def __init__(self, L, small_worlds: dict, by_midpoint: bool, cur, alpha: float):
         self.table = {}
         # Create a market for each security in large world
         for state_num in L:
-            self.table[state_num] = Market2(by_midpoint, cur, alpha, phi, epsilon, rep_flag)
+            self.table[state_num] = Market2(by_midpoint, cur, alpha)
         for small_world in small_worlds.values():
             # Add all securities to the reserve bank of its respective market
             # This esentially is a storage of all participants in that market
@@ -34,22 +33,12 @@ class MarketTable2:
         self.latest_price = -1
     
     # When a bid/ask is randomly generated, it gets passed along to the correct security market
-    # It updates the latest price if a transaction was conducted
     def updateBidder(self, new_bid: float, new_bidder, time: int):
         price = self.table[new_bidder.state_num].updateBidder(new_bid, new_bidder, time)
-        if price != -1:
-            self.latest_price = price
 
     def updateAsker(self, new_ask: float, new_asker, time: int):
         price = self.table[new_asker.state_num].updateAsker(new_ask, new_asker, time)
-        if price != -1:
-            self.latest_price = price
     
-    # Returns the last price of any transaction across all markets for the current period
-    # Returns -1 if no transactions have occured at all
-    def getLatestPrice(self) -> float:
-        return self.latest_price
-
     # Attempts to create a market clearing transaction for each of the markets in the table
     # Called at the end of an iteration
     def tableMarketMake(self, iteration_num: int) -> None:
@@ -59,3 +48,7 @@ class MarketTable2:
     # Returns the minimum price for the market of state_num
     def getMarketMinPrice(self, state_num: int) -> float:
         return self.table[state_num].getMinPrice()
+
+    # Get market corresponding to the one trading security state_num
+    def getMarket(self, state_num) -> Market2:
+        return self.table[state_num]

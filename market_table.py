@@ -49,3 +49,7 @@ class MarketTable:
     # Returns -1 if no transactions have occured at all
     def getLatestPrice(self) -> float:
         return self.latest_price
+
+    # Get market corresponding to the one trading security state_num
+    def getMarket(self, state_num) -> Market:
+        return self.table[state_num]

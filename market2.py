@@ -17,18 +17,16 @@ class Market2:
     # num_transactions: int         number of transactions have been conducted in this market in this period
     # period_num: int               current period
     # alpha: float                  alpha for post-transaction first order adaptive process
-    # phi: int                      phi for representativeness module
-    # epsilon: float                epsilon for representativeness module
-    # rep_flag: int                 what representativeness module to use
     # min_price: int                the minimum price of a transaction for this market in a period
 
     # A Market object is created which represents the market for a particular security
-    def __init__(self, by_midpoint: bool, cur, alpha: float, phi: int, epsilon: float, rep_flag: int):
+    def __init__(self, by_midpoint: bool, cur, alpha: float):
         self.cur = cur
-        self.by_midpoint, self.alpha, self.phi, self.epsilon, self.rep_flag = by_midpoint, alpha, phi, epsilon, rep_flag
-        self.reserve = []
+        self.by_midpoint = by_midpoint
+        self.alpha = alpha
 
         # Initialize period as -1 becuase it will be incremented to 0 once period reset function is called
+        self.reserve = []
         self.period_num = -1
         self.periodReset()
 
@@ -64,8 +62,7 @@ class Market2:
             self.bidder_time = time
     
     # Only update asker if they have more than 1 in their security balance and there is no current asker or their ask is lower
-    # Returns transaction price if market clearing transaction was conducted, -1 otherwise
-    def updateAsker(self, new_ask: float, new_asker, time: int) -> bool:
+    def updateAsker(self, new_ask: float, new_asker, time: int) -> None:
         if new_asker.amount > 0 and (not self.asker or new_ask < self.ask):
             self.ask = new_ask
             self.asker = new_asker
@@ -75,7 +72,7 @@ class Market2:
     # Returns either the price of the transaction or -1 to signify no transaction was conducted
     # This function is only called at the end of an iteration after all agents
     # have had a chance to submit a bid/ask for each of their securities
-    def marketMake(self, time: int) -> bool:
+    def marketMake(self, time: int) -> float:
         # There is not a market clearing transaction
         if (
             not self.bidder
@@ -105,14 +102,26 @@ class Market2:
         seller_id = self.asker.parent_world.agent_num
         action = 1 if self.bidder_time > self.asker_time else 0
         self.cur.execute("INSERT INTO transactions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", 
-                        [self.period_num, time, state_num, self.num_transactions, buyer_id, seller_id, 
-                        transaction_price, action, self.bid, self.bidder.aspiration, self.ask, self.asker.aspiration, self.bid - self.ask]
-                        )
+                        [
+                            self.period_num, 
+                            time, 
+                            state_num, 
+                            self.num_transactions,
+                            buyer_id, 
+                            seller_id, 
+                            transaction_price, 
+                            action, 
+                            self.bid, 
+                            self.bidder.aspiration, 
+                            self.ask, 
+                            self.asker.aspiration, 
+                            self.bid - self.ask
+                        ]
+        )
         self.num_transactions += 1
-        # Apply necessary changes to all participants in this market for this security
+        # Apply the first order adapative process to all participants that have this security in their small world
         for state in self.reserve:
             if state_num not in state.parent_world.not_info:
-                # Enact trans CAL
                 state.updateAspiration(ai.priceFirstOrderAdaptive(state.aspiration, transaction_price, self.alpha))
 
         # Reset the market after a successful transaction
@@ -121,3 +130,6 @@ class Market2:
 
     def getMinPrice(self) -> float:
         return self.min_price
+
+    def getReserve(self) -> 'List[State]':
+        return self.reserve
